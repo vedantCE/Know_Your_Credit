@@ -129,7 +129,9 @@ const CreditLookup = () => {
             <div className="bg-blue-600 p-2 rounded-lg">
               <Shield className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">CreditScore</span>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
+                  Know Your Credit
+                </h1>
           </Link>
           <Link to="/signin">
             <Button variant="outline">Sign In</Button>
