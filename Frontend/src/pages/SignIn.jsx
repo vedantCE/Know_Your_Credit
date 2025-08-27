@@ -151,7 +151,7 @@ const SignIn = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                  CreditScore
+                  Know Your Credit
                 </h1>
               </div>
             </div>
