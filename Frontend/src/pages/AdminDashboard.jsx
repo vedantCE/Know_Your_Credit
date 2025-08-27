@@ -397,10 +397,11 @@ const AdminDashboard = () => {
     
     const unsubscribeUsers = realTimeSync.subscribe('users', (response) => {
       if (response.status === "Success") {
-        // Format dynamic users with proper Customer ID
+        // Format dynamic users - keep original database ID for operations
         const formattedDynamicUsers = response.users.map((user, index) => ({
           ...user,
-          id: user.id.toString().startsWith('USR') ? user.id : `USR${String(index + 100).padStart(3, '0')}`,
+          id: user.id, // Keep original database ID for delete/suspend operations
+          displayId: user.id.toString().startsWith('USR') ? user.id : `USR${String(index + 100).padStart(3, '0')}`,
           totalLoans: user.totalLoans || 0
         }));
         setCustomers([...mockCustomers, ...formattedDynamicUsers]);
@@ -515,28 +516,34 @@ const AdminDashboard = () => {
   // Remove user completely
   const handleRemoveUser = async (userId) => {
     try {
+      console.log('Deleting user with ID:', userId);
       const response = await fetch(`http://localhost:3001/users/${userId}`, {
         method: 'DELETE'
       });
       const data = await response.json();
       
       if (data.status === 'Success') {
-        // Remove from local state
+        // Remove from local state immediately
         setCustomers(prev => prev.filter(customer => customer.id !== userId));
-        alert('User removed completely from system');
+        
+        // Close modal and show success
+        setRemovingUser(null);
+        alert(`User ${data.deletedUser?.name} permanently removed from all systems`);
       } else {
         alert('Failed to remove user: ' + data.message);
+        setRemovingUser(null);
       }
     } catch (error) {
       console.error('Failed to remove user:', error);
-      alert('Failed to remove user');
+      alert('Network error: Failed to remove user');
+      setRemovingUser(null);
     }
-    setRemovingUser(null);
   };
 
   // Suspend user for 24 hours
   const handleSuspendUser = async (userId) => {
     try {
+      console.log('Suspending user with ID:', userId);
       const response = await fetch(`http://localhost:3001/users/${userId}/suspend`, {
         method: 'PUT'
       });
@@ -941,7 +948,7 @@ const AdminDashboard = () => {
                               className="bg-red-50 border-red-200 text-red-600 hover:bg-red-100" 
                               onClick={() => setRemovingUser(customer)}
                             >
-                              Remove
+                              Delete
                             </Button>
                           </div>
                         </TableCell>
@@ -1375,7 +1382,7 @@ const AdminDashboard = () => {
           <div className="w-full max-w-md bg-white rounded-lg shadow-lg">
             <div className="p-4 border-b flex items-center justify-between">
               <h3 className="text-lg font-semibold text-red-800">
-                Remove User
+                Permanently Delete User
               </h3>
               <Button size="sm" variant="ghost" onClick={() => setRemovingUser(null)}>
                 Close
@@ -1383,7 +1390,7 @@ const AdminDashboard = () => {
             </div>
             <div className="p-4">
               <p className="text-sm text-gray-600 mb-4">
-                Are you sure you want to <strong>permanently remove</strong> this user?
+                Are you sure you want to <strong>permanently delete</strong> this user?
               </p>
               <div className="bg-red-50 p-3 rounded-lg border border-red-200 mb-4">
                 <p className="text-sm text-red-800">
@@ -1410,7 +1417,7 @@ const AdminDashboard = () => {
                 onClick={() => handleRemoveUser(removingUser.id)}
                 className="bg-red-500 hover:bg-red-600 text-white"
               >
-                Remove Permanently
+                Delete Permanently
               </Button>
             </div>
           </div>

@@ -206,9 +206,17 @@ class MockBureauAPIs {
         // Random status changes for demo
         const random = Math.random();
         if (bureau === 'CIBIL') {
-          // Keep CIBIL down for demo
-          this.apiStatus[bureau].status = 'DOWN';
-          this.apiStatus[bureau].responseTime = 0;
+          // CIBIL down only 10% of the time instead of always
+          if (random < 0.1) {
+            this.apiStatus[bureau].status = 'DOWN';
+            this.apiStatus[bureau].responseTime = 0;
+          } else if (random < 0.2) {
+            this.apiStatus[bureau].status = 'SLOW';
+            this.apiStatus[bureau].responseTime = 250 + Math.random() * 300;
+          } else {
+            this.apiStatus[bureau].status = 'UP';
+            this.apiStatus[bureau].responseTime = 80 + Math.random() * 200;
+          }
         } else if (bureau === 'EQUIFAX') {
           // Keep EQUIFAX slow for demo  
           this.apiStatus[bureau].status = 'SLOW';
@@ -228,10 +236,9 @@ class MockBureauAPIs {
         }
         
         this.apiStatus[bureau].lastCheck = new Date();
-        this.apiStatus[bureau].responseTime = 80 + Math.random() * 200; // 80-280ms
         this.apiStatus[bureau].uptime = this.calculateUptime(bureau);
       });
-    }, 30000); // Check every 30 seconds
+    }, 600000); // Check every 10 minutes (600 seconds)
   }
 
   calculateUptime(bureau) {

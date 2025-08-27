@@ -1,12 +1,16 @@
+require('dotenv').config();
 const express=require("express");
 const mongoose=require('mongoose');
 const cors=require("cors");
+const crypto=require('crypto');
 const EmployeeModel=require('./models/Employee');
 const LoanApplicationModel=require('./models/LoanApplication');
 const NotificationModel=require('./models/Notification');
 const bureauRoutes=require('./routes/bureau');
 const mockBureauAPIs=require('./services/mockBureauAPIs');
 const employeeRoutes=require('./routes/employees');
+const otpRoutes=require('./routes/otp');
+const emailService=require('./services/emailService');
 
 const MONGO_URI="mongodb+srv://vedantbhattce28:3yhEkDTd5S8fKFAs@cluster1.dbi1j2u.mongodb.net/kycDB?retryWrites=true&w=majority"
 
@@ -16,6 +20,7 @@ app.use(cors());
 app.use('/api/bureau', bureauRoutes);
 app.use('/api/mock-bureau', require('./routes/mockBureau'));
 app.use('/api/employees', employeeRoutes);
+app.use('/api/otp', otpRoutes);
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Atlas Connected Successfully'))
@@ -125,6 +130,63 @@ app.post('/login',(req,res)=>{
    .catch(err => res.json({status: "Error", message: "Server error"}))
 })
 
+// Forgot Password
+app.post('/forgot-password', async (req, res) => {
+   const { email } = req.body;
+   
+   try {
+      console.log('Searching for email:', email);
+      const user = await EmployeeModel.findOne({ email });
+      console.log('User found:', user ? 'Yes' : 'No');
+      
+      if (!user) {
+         return res.json({ status: "Error", message: "Email not found" });
+      }
+      
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+      
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordExpires = resetExpires;
+      await user.save();
+      
+      const emailResult = await emailService.sendPasswordResetEmail(email, resetToken);
+      
+      if (emailResult.success) {
+         res.json({ status: "Success", message: "Password reset email sent" });
+      } else {
+         res.json({ status: "Error", message: "Failed to send email" });
+      }
+   } catch (error) {
+      res.json({ status: "Error", message: "Server error" });
+   }
+})
+
+// Reset Password
+app.post('/reset-password', async (req, res) => {
+   const { token, newPassword } = req.body;
+   
+   try {
+      const user = await EmployeeModel.findOne({
+         resetPasswordToken: token,
+         resetPasswordExpires: { $gt: Date.now() }
+      });
+      
+      if (!user) {
+         return res.json({ status: "Error", message: "Invalid or expired token" });
+      }
+      
+      user.password = newPassword;
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      await user.save();
+      
+      res.json({ status: "Success", message: "Password reset successfully" });
+   } catch (error) {
+      res.json({ status: "Error", message: "Server error" });
+   }
+})
+
 // Get all users (Admin only)
 app.get('/users', async (req, res) => {
    try {
@@ -135,7 +197,7 @@ app.get('/users', async (req, res) => {
          const loanCount = await LoanApplicationModel.countDocuments({ userId: user._id });
          
          return {
-            id: user._id,
+            id: user._id.toString(), // Ensure ID is string for frontend
             name: `${user.firstName} ${user.lastName}`,
             email: user.email,
             phone: user.phoneNumber || 'N/A',
@@ -217,7 +279,7 @@ app.post('/search-users', (req, res) => {
    }, '-password')
    .then(users => {
       const formattedUsers = users.map(user => ({
-         id: user._id,
+         id: user._id.toString(), // Ensure ID is string for frontend
          name: `${user.firstName} ${user.lastName}`,
          email: user.email,
          phone: user.phoneNumber || 'N/A',
@@ -240,18 +302,24 @@ app.post('/search-users', (req, res) => {
 })
 
 // Update user (Admin only)
-app.put('/users/:id', (req, res) => {
-   const { id } = req.params;
-   const updateData = req.body;
-   
-   EmployeeModel.findByIdAndUpdate(id, updateData, { new: true })
-   .then(user => {
+app.put('/users/:id', async (req, res) => {
+   try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+         return res.json({status: "Error", message: "Invalid user ID format"});
+      }
+      
+      const user = await EmployeeModel.findByIdAndUpdate(id, updateData, { new: true });
+      
       if (user) {
          res.json({
             status: "Success",
             message: "User updated successfully",
             user: {
-               id: user._id,
+               id: user._id.toString(), // Ensure ID is string for frontend
                name: `${user.firstName} ${user.lastName}`,
                email: user.email,
                phone: user.phoneNumber,
@@ -259,28 +327,16 @@ app.put('/users/:id', (req, res) => {
                riskLevel: user.riskLevel,
                status: user.status
             }
-         })
+         });
       } else {
-         res.json({status: "Error", message: "User not found"})
+         res.json({status: "Error", message: "User not found"});
       }
-   })
-   .catch(err => res.json({status: "Error", message: "Update failed"}))
-})
+   } catch (error) {
+      res.json({status: "Error", message: "Update failed"});
+   }
+});
 
-// Delete user (Admin only)
-app.delete('/users/:id', (req, res) => {
-   const { id } = req.params;
-   
-   EmployeeModel.findByIdAndDelete(id)
-   .then(user => {
-      if (user) {
-         res.json({status: "Success", message: "User deleted successfully"})
-      } else {
-         res.json({status: "Error", message: "User not found"})
-      }
-   })
-   .catch(err => res.json({status: "Error", message: "Delete failed"}))
-})
+
 
 // Get signup logs (Admin only)
 app.get('/signup-logs', (req, res) => {
@@ -289,7 +345,7 @@ app.get('/signup-logs', (req, res) => {
    .limit(50)
    .then(logs => {
       const formattedLogs = logs.map(log => ({
-         id: log._id,
+         id: log._id.toString(), // Ensure ID is string for frontend
          name: `${log.firstName} ${log.lastName}`,
          email: log.email,
          role: log.role,
@@ -480,27 +536,54 @@ app.delete('/loan-applications/:id', async (req, res) => {
    }
 });
 
-// Remove user completely
+// Remove user completely from all systems
 app.delete('/users/:id', async (req, res) => {
    try {
       const { id } = req.params;
+      console.log('Attempting to delete user with ID:', id);
       
-      // Delete user's loan applications
-      await LoanApplicationModel.deleteMany({ userId: id });
-      
-      // Delete user's notifications
-      await NotificationModel.deleteMany({ userId: id });
-      
-      // Delete user
-      const user = await EmployeeModel.findByIdAndDelete(id);
-      
-      if (user) {
-         res.json({status: 'Success', message: 'User removed completely'});
-      } else {
-         res.json({status: 'Error', message: 'User not found'});
+      // Handle mock users (static users)
+      const mockUserIds = ['USR001', 'USR002', 'USR003', 'USR004', 'USR005', 'USR006'];
+      if (mockUserIds.includes(id)) {
+         return res.json({
+            status: 'Success', 
+            message: 'Mock user removed from display',
+            deletedUser: { id, name: 'Mock User' }
+         });
       }
+      
+      // Handle dynamic users (database users)
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+         return res.json({status: 'Error', message: 'Invalid user ID format'});
+      }
+      
+      const user = await EmployeeModel.findById(id);
+      if (!user) {
+         return res.json({status: 'Error', message: 'User not found in database'});
+      }
+      
+      // Delete all related data
+      await Promise.all([
+         LoanApplicationModel.deleteMany({ userId: id }),
+         NotificationModel.deleteMany({ userId: id }),
+         EmployeeModel.findByIdAndDelete(id)
+      ]);
+      
+      console.log(`User permanently deleted: ${user.email} (${user.firstName} ${user.lastName})`);
+      
+      res.json({
+         status: 'Success', 
+         message: 'User permanently removed from all systems',
+         deletedUser: {
+            id: user._id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email
+         }
+      });
    } catch (error) {
-      res.json({status: 'Error', message: 'Failed to remove user'});
+      console.error('Delete user error:', error);
+      res.json({status: 'Error', message: 'Delete failed: ' + error.message});
    }
 });
 
@@ -508,7 +591,12 @@ app.delete('/users/:id', async (req, res) => {
 app.put('/users/:id/suspend', async (req, res) => {
    try {
       const { id } = req.params;
-      const suspendUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+      const suspendUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+         return res.json({status: 'Error', message: 'Invalid user ID format'});
+      }
       
       const user = await EmployeeModel.findByIdAndUpdate(id, {
          status: 'Suspended',
@@ -516,7 +604,6 @@ app.put('/users/:id/suspend', async (req, res) => {
       }, { new: true });
       
       if (user) {
-         // Create notification
          await NotificationModel.create({
             userId: id,
             title: 'Account Suspended',

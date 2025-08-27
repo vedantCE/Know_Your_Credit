@@ -67,10 +67,10 @@ class BureauHealthService {
   }
 
   startHealthChecks() {
-    // Sync with mock API every 30 seconds
+    // Sync with mock API every 10 minutes
     setInterval(() => {
       this.syncWithMockAPI();
-    }, 30000);
+    }, 600000);
     
     // Initial sync
     this.syncWithMockAPI();
