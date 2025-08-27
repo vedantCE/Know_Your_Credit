@@ -1349,7 +1349,7 @@ const BankDashboard = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                  CreditScore
+                  Know Your Credit
                 </h1>
                 <Badge className="bg-blue-100 text-blue-700 border-blue-200 mt-1">
                   Bank Portal
