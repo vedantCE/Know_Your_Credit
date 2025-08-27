@@ -319,7 +319,7 @@ const SignUp = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                CreditScore
+                Know Your Credit
               </h1>
               <p className="text-sm text-gray-600 font-medium">Secure Banking Portal</p>
             </div>
@@ -693,8 +693,7 @@ const SignUp = () => {
                   <div>
                     <p className="text-sm font-medium text-blue-800">Your data is secure</p>
                     <p className="text-xs text-blue-600 mt-1">
-                      We use bank-grade encryption to protect your personal and financial information. 
-                      Your credit score will be calculated based on your profile information.
+                      We use bank-grade encryption to protect your personal and financial information.
                     </p>
                   </div>
                 </div>
