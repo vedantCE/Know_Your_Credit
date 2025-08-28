@@ -231,6 +231,7 @@ const SignUp = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         panNumber: formData.panNumber.toUpperCase(),
+        aadhaarNumber: formData.aadhaarNumber.replace(/\s/g, ''), // Remove spaces
         phoneNumber: formData.phoneNumber,
         address: formData.address,
         dateOfBirth: formData.dateOfBirth,
@@ -259,6 +260,16 @@ const SignUp = () => {
         localStorage.setItem("userDateOfBirth", data.user.dateOfBirth || formData.dateOfBirth);
         localStorage.setItem("userPAN", data.user.panNumber || formData.panNumber);
         localStorage.setItem("userAadhaar", data.user.aadhaarNumber || formData.aadhaarNumber);
+        
+        // Store additional profile data for dashboard use
+        localStorage.setItem("userProfile", JSON.stringify({
+          dateOfBirth: data.user.dateOfBirth || formData.dateOfBirth,
+          aadhaarNumber: data.user.aadhaarNumber || formData.aadhaarNumber,
+          address: data.user.address || formData.address,
+          occupation: data.user.occupation || formData.occupation,
+          annualIncome: data.user.annualIncome || formData.annualIncome,
+          phoneNumber: data.user.phoneNumber || formData.phoneNumber
+        }));
         localStorage.setItem("profileComplete", "false");
 
         toast({
@@ -319,7 +330,7 @@ const SignUp = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                Know Your Credit
+                CreditScore
               </h1>
               <p className="text-sm text-gray-600 font-medium">Secure Banking Portal</p>
             </div>
@@ -500,7 +511,8 @@ const SignUp = () => {
                       <SelectTrigger className={`mt-1 ${validationErrors.occupation ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500`}>
                         <SelectValue placeholder="Select your occupation" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white text-black">
+                    
                         <SelectItem value="Software Engineer">Software Engineer</SelectItem>
                         <SelectItem value="Data Scientist">Data Scientist</SelectItem>
                         <SelectItem value="Product Manager">Product Manager</SelectItem>
@@ -528,7 +540,7 @@ const SignUp = () => {
                       <SelectTrigger className={`mt-1 ${validationErrors.annualIncome ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500`}>
                         <SelectValue placeholder="Select income range" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white text-black">
                         <SelectItem value="₹2,00,000 - ₹3,00,000">₹2,00,000 - ₹3,00,000</SelectItem>
                         <SelectItem value="₹3,00,000 - ₹5,00,000">₹3,00,000 - ₹5,00,000</SelectItem>
                         <SelectItem value="₹5,00,000 - ₹7,00,000">₹5,00,000 - ₹7,00,000</SelectItem>
@@ -693,7 +705,8 @@ const SignUp = () => {
                   <div>
                     <p className="text-sm font-medium text-blue-800">Your data is secure</p>
                     <p className="text-xs text-blue-600 mt-1">
-                      We use bank-grade encryption to protect your personal and financial information.
+                      We use bank-grade encryption to protect your personal and financial information. 
+                      Your credit score will be calculated based on your profile information.
                     </p>
                   </div>
                 </div>
