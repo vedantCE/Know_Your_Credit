@@ -1644,7 +1644,7 @@ const toggleFaq = (index) => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                  Know Your Credit
+                  CreditScore
                 </h1>
                 <Badge className="bg-blue-100 text-blue-700 border-blue-200 mt-1">
                   User Portal
@@ -2244,29 +2244,38 @@ const toggleFaq = (index) => {
                     onClick={() => {
                       // Validate required fields
                       const requiredFields = [
-                        { key: 'userPhone', name: 'Phone Number', pattern: /^[0-9]{10}$/ },
+                        { key: 'userPhone', name: 'Phone Number', pattern: /^[+]?[0-9\s-()]{10,15}$/ },
                         { key: 'userDateOfBirth', name: 'Date of Birth' },
                         { key: 'userPAN', name: 'PAN Number', pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/ },
-                        { key: 'userAadhaar', name: 'Aadhaar Number', pattern: /^[0-9]{12}$/ },
+                        { key: 'userAadhaar', name: 'Aadhaar Number' }, // Will handle validation separately
                         { key: 'userAddress', name: 'Address' },
                         { key: 'userOccupation', name: 'Occupation' },
                         { key: 'userAnnualIncome', name: 'Annual Income', pattern: /^[0-9]+$/ },
                         { key: 'userEmploymentType', name: 'Employment Type' }
                       ];
                       
-                      // Check bank details
+                      // Check bank details - only for banks that have data entered
                       const bankFields = [];
                       for (let i = 1; i <= bankCount; i++) {
-                        bankFields.push(
-                          { key: `bankName${i}`, name: `Bank ${i} Name` },
-                          { key: `accountNumber${i}`, name: `Bank ${i} Account Number`, pattern: /^[0-9]{9,18}$/ },
-                          { key: `ifscCode${i}`, name: `Bank ${i} IFSC Code`, pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/ },
-                          { key: `accountType${i}`, name: `Bank ${i} Account Type` }
-                        );
+                        // Only validate if bank name is provided (indicating user wants to add this bank)
+                        const bankName = (bankData[`bankName${i}`] || "").trim();
+                        if (bankName) {
+                          bankFields.push(
+                            { key: `bankName${i}`, name: `Bank ${i} Name` },
+                            { key: `accountNumber${i}`, name: `Bank ${i} Account Number`, pattern: /^[0-9]{8,20}$/ },
+                            { key: `ifscCode${i}`, name: `Bank ${i} IFSC Code`, pattern: /^[A-Z]{4}[0-9A-Z]{7}$/ },
+                            { key: `accountType${i}`, name: `Bank ${i} Account Type` }
+                          );
+                        }
                       }
                       
                       const allFields = [...requiredFields, ...bankFields];
                       const errors = [];
+                      
+                      // Ensure at least one bank is configured
+                      if (bankFields.length === 0) {
+                        errors.push('At least one bank account is required');
+                      }
                       
                       // Debug: Log current state
                       console.log('Profile Data:', profileData);
@@ -2286,12 +2295,18 @@ const toggleFaq = (index) => {
                         if (!value || value.toString().trim() === '') {
                           errors.push(`${field.name} is required`);
                         } else if (field.pattern && !field.pattern.test(value.toString().trim())) {
-                          if (field.key === 'userPhone') errors.push('Phone number must be 10 digits');
+                          if (field.key === 'userPhone') errors.push('Please enter a valid phone number');
                           else if (field.key === 'userPAN') errors.push('PAN format: ABCDE1234F');
-                          else if (field.key === 'userAadhaar') errors.push('Aadhaar must be 12 digits');
+                          else if (field.key === 'userAadhaar') {
+                            // Special validation for Aadhaar - check if it's 12 digits after removing spaces
+                            const cleanAadhaar = value.toString().replace(/\s/g, '');
+                            if (!/^[0-9]{12}$/.test(cleanAadhaar)) {
+                              errors.push('Aadhaar must be 12 digits (spaces allowed)');
+                            }
+                          }
                           else if (field.key === 'userAnnualIncome') errors.push('Annual income must be numeric');
-                          else if (field.key.includes('accountNumber')) errors.push(`${field.name} must be 9-18 digits`);
-                          else if (field.key.includes('ifscCode')) errors.push(`${field.name} format: ABCD0123456`);
+                          else if (field.key.includes('accountNumber')) errors.push(`${field.name} must be 8-20 digits`);
+                          else if (field.key.includes('ifscCode')) errors.push(`${field.name} format: ABCD0123456 (4 letters + 7 alphanumeric)`);
                         }
                       });
                       
