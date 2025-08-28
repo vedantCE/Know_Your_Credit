@@ -418,7 +418,7 @@ const AdminDashboard = () => {
     // Fetch bureau status
     const fetchBureauStatus = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/bureau/health-status');
+        const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/api/bureau/health-status');
         const data = await response.json();
         if (data.status === 'Success') {
           setBureauStatus(data.data);
@@ -517,7 +517,7 @@ const AdminDashboard = () => {
   const handleRemoveUser = async (userId) => {
     try {
       console.log('Deleting user with ID:', userId);
-      const response = await fetch(`http://localhost:3001/users/${userId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${userId}`, {
         method: 'DELETE'
       });
       const data = await response.json();
@@ -544,7 +544,7 @@ const AdminDashboard = () => {
   const handleSuspendUser = async (userId) => {
     try {
       console.log('Suspending user with ID:', userId);
-      const response = await fetch(`http://localhost:3001/users/${userId}/suspend`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${userId}/suspend`, {
         method: 'PUT'
       });
       const data = await response.json();

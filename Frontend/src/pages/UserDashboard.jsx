@@ -1028,7 +1028,7 @@ const UserDashboard = () => {
     try {
       const userId = localStorage.getItem("userId");
       if (userId) {
-        const response = await fetch(`http://localhost:3001/loan-applications/${userId}`);
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/loan-applications/${userId}`);
         const data = await response.json();
         if (data.status === 'Success') {
           const formattedApps = data.applications.map(app => ({
@@ -1053,7 +1053,7 @@ const UserDashboard = () => {
     try {
       const userId = localStorage.getItem("userId");
       if (userId) {
-        const response = await fetch(`http://localhost:3001/notifications/${userId}`);
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notifications/${userId}`);
         const data = await response.json();
         if (data.status === 'Success') {
           const formattedNotifications = data.notifications.map(notif => ({
@@ -1096,7 +1096,7 @@ const UserDashboard = () => {
     try {
       const userId = localStorage.getItem("userId");
       if (userId) {
-        await fetch(`http://localhost:3001/notifications/${id}/read`, { method: 'PUT' });
+        await fetch(`${import.meta.env.VITE_BACKEND_URL}/notifications/${id}/read`, { method: 'PUT' });
       }
       setNotifications((nots) =>
         nots.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -1114,7 +1114,7 @@ const UserDashboard = () => {
     try {
       const userId = localStorage.getItem("userId");
       if (userId) {
-        await fetch(`http://localhost:3001/notifications/${userId}/read-all`, { method: 'PUT' });
+        await fetch(`${import.meta.env.VITE_BACKEND_URL}/notifications/${userId}/read-all`, { method: 'PUT' });
       }
       setNotifications((nots) => nots.map((n) => ({ ...n, read: true })));
     } catch (error) {
@@ -1457,7 +1457,7 @@ const toggleFaq = (index) => {
     try {
       const userId = localStorage.getItem("userId");
       if (userId) {
-        const response = await fetch('http://localhost:3001/loan-applications', {
+        const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/loan-applications', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1520,7 +1520,7 @@ const toggleFaq = (index) => {
         // For real applications, call backend to delete
         const app = applications.find(a => a.id === applicationId);
         if (app && app.mongoId) {
-          const response = await fetch(`http://localhost:3001/loan-applications/${app.mongoId}`, {
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/loan-applications/${app.mongoId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reason: removeReason })

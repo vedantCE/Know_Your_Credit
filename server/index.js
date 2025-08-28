@@ -16,7 +16,11 @@ const MONGO_URI="mongodb+srv://vedantbhattce28:3yhEkDTd5S8fKFAs@cluster1.dbi1j2u
 
 const app=express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+   origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
+   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+   credentials: true
+}));
 app.use('/api/bureau', bureauRoutes);
 app.use('/api/mock-bureau', require('./routes/mockBureau'));
 app.use('/api/employees', employeeRoutes);

@@ -62,7 +62,7 @@ const LoanApplicationModal = ({ isOpen, onClose, loanDetails, onSubmit }) => {
       };
 
       // Submit to backend
-      const response = await fetch('http://localhost:3001/loan-applications', {
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/loan-applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(applicationData)

@@ -142,7 +142,7 @@ const SignUp = () => {
     setCanResendOtp(false);
     
     try {
-      const response = await fetch('http://localhost:3001/send-otp', {
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/send-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

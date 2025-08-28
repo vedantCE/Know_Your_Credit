@@ -15,7 +15,7 @@ const BureauStatusPanel = () => {
 
   const fetchBureauStatus = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/bureau/health-status');
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/api/bureau/health-status');
       const data = await response.json();
       if (data.status === 'Success') {
         setBureauStatus(data.data);

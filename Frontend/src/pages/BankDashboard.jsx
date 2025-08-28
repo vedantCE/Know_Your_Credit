@@ -138,7 +138,7 @@ const ReviewForm = ({ application, onClose, onConfirm, bureauStatus = {} }) => {
   const getUserCreditScore = async (application) => {
     try {
       if (application.userId) {
-        const response = await fetch(`http://localhost:3001/users/${application.userId}/credit-score`);
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${application.userId}/credit-score`);
         if (response.ok) {
           const data = await response.json();
           return data.creditScore;
@@ -504,7 +504,7 @@ const BankDashboard = () => {
   // Load users from backend
   const loadUsers = async () => {
     try {
-      const response = await fetch('http://localhost:3001/users');
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/users');
       const data = await response.json();
       if (data.status === 'Success') {
         setAllUsers(data.users);
@@ -531,7 +531,7 @@ const BankDashboard = () => {
     // Fetch bureau status
     const fetchBureauStatus = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/bureau/health-status');
+        const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/api/bureau/health-status');
         const data = await response.json();
         if (data.status === 'Success') {
           setBureauStatus(data.data);
@@ -763,7 +763,7 @@ const BankDashboard = () => {
 
   const loadLoanApplications = async () => {
     try {
-      const response = await fetch('http://localhost:3001/all-loan-applications');
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/all-loan-applications');
       const data = await response.json();
       if (data.status === 'Success') {
         const realApps = data.applications.map(app => {
@@ -854,7 +854,7 @@ const BankDashboard = () => {
       }
       
       // For real applications from backend
-      const response = await fetch(`http://localhost:3001/loan-applications/${app.mongoId || applicationId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/loan-applications/${app.mongoId || applicationId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, reviewedBy: userId, rejectionReason })

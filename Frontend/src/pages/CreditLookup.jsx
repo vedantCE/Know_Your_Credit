@@ -53,7 +53,7 @@ const CreditLookup = () => {
 
     try {
       // Check if user exists in database
-      const userCheckResponse = await fetch('http://localhost:3001/api/employees/check-user', {
+      const userCheckResponse = await fetch(import.meta.env.VITE_BACKEND_URL + '/api/employees/check-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ const CreditLookup = () => {
         const userData = await userCheckResponse.json();
         
         // Get consolidated credit score
-        const creditResponse = await fetch('http://localhost:3001/api/bureau/consolidated-score', {
+        const creditResponse = await fetch(import.meta.env.VITE_BACKEND_URL + '/api/bureau/consolidated-score', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
