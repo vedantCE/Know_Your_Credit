@@ -429,13 +429,13 @@ const LoanApplicationModal = ({
     };
 
     // Get loan amount, tenure, and interest from selected loan
-    const loanAmount = selectedLoan
+    const loanAmount = selectedLoan?.amount
       ? selectedLoan.amount.replace(/[^0-9]/g, "")
       : "500000";
-    const loanTenure = selectedLoan
+    const loanTenure = selectedLoan?.tenure
       ? selectedLoan.tenure.replace(/[^0-9]/g, "")
       : "5";
-    const loanInterest = selectedLoan
+    const loanInterest = selectedLoan?.interest
       ? selectedLoan.interest.replace(/[^0-9.]/g, "")
       : "10.5";
 
@@ -457,9 +457,9 @@ const LoanApplicationModal = ({
       // Update only the loan-specific fields when selectedLoan changes
       setForm((prev) => ({
         ...prev,
-        requestedAmount: selectedLoan.amount.replace(/[^0-9]/g, ""),
-        tenureYears: selectedLoan.tenure.replace(/[^0-9]/g, ""),
-        interestRate: selectedLoan.interest.replace(/[^0-9.]/g, ""),
+        requestedAmount: selectedLoan?.amount?.replace(/[^0-9]/g, "") || "500000",
+        tenureYears: selectedLoan?.tenure?.replace(/[^0-9]/g, "") || "5",
+        interestRate: selectedLoan?.interest?.replace(/[^0-9.]/g, "") || "10.5",
       }));
     }
   }, [selectedLoan, isOpen]);
@@ -953,42 +953,19 @@ const UserDashboard = () => {
     }
   }, []);
   
-  const checkProfileComplete = () => {
-    const requiredFields = ['userPhone', 'userDateOfBirth', 'userPAN', 'userAadhaar', 'userAddress', 'userOccupation', 'userAnnualIncome', 'userEmploymentType'];
-    const bankFields = [];
-    for (let i = 1; i <= bankCount; i++) {
-      bankFields.push(`bankName${i}`, `accountNumber${i}`, `ifscCode${i}`, `accountType${i}`);
-    }
-    const allFields = [...requiredFields, ...bankFields];
-    return allFields.every(field => {
-      if (field.startsWith('bank')) {
-        return bankData[field]?.trim();
-      }
-      return profileData[field]?.trim();
-    });
-  };
+
   
   const handleLoanApply = (loan) => {
-    // Check profile completion using current state
-    const requiredFields = ['userPhone', 'userDateOfBirth', 'userPAN', 'userAadhaar', 'userAddress', 'userOccupation', 'userAnnualIncome', 'userEmploymentType'];
-    const bankFields = [];
-    for (let i = 1; i <= bankCount; i++) {
-      bankFields.push(`bankName${i}`, `accountNumber${i}`, `ifscCode${i}`, `accountType${i}`);
-    }
-    const allFields = [...requiredFields, ...bankFields];
+    // Check if profile is marked as complete in localStorage
+    const profileComplete = localStorage.getItem("profileComplete") === "true";
     
-    const isComplete = allFields.every(field => {
-      if (field.startsWith('bank')) {
-        return bankData[field]?.trim();
-      }
-      return profileData[field]?.trim();
-    });
-    
-    if (!isComplete) {
+    if (!profileComplete) {
       setShowProfileModal(true);
       return;
     }
-    openApplicationModal(loan);
+    
+    setSelectedLoan(loan);
+    setIsModalOpen(true);
   };
   const [notifications, setNotifications] = useState([
     {
@@ -2254,10 +2231,16 @@ const toggleFaq = (index) => {
                         { key: 'userEmploymentType', name: 'Employment Type' }
                       ];
                       
-                      // Check bank details - only for banks that have data entered
-                      const bankFields = [];
-                      for (let i = 1; i <= bankCount; i++) {
-                        // Only validate if bank name is provided (indicating user wants to add this bank)
+                      // Check bank details - validate all required bank fields for Bank 1
+                      const bankFields = [
+                        { key: `bankName1`, name: `Bank 1 Name` },
+                        { key: `accountNumber1`, name: `Bank 1 Account Number`, pattern: /^[0-9]{8,20}$/ },
+                        { key: `ifscCode1`, name: `Bank 1 IFSC Code`, pattern: /^[A-Z]{4}[0-9A-Z]{7}$/ },
+                        { key: `accountType1`, name: `Bank 1 Account Type` }
+                      ];
+                      
+                      // Add additional banks only if they have bank name filled
+                      for (let i = 2; i <= bankCount; i++) {
                         const bankName = (bankData[`bankName${i}`] || "").trim();
                         if (bankName) {
                           bankFields.push(
@@ -2272,11 +2255,6 @@ const toggleFaq = (index) => {
                       const allFields = [...requiredFields, ...bankFields];
                       const errors = [];
                       
-                      // Ensure at least one bank is configured
-                      if (bankFields.length === 0) {
-                        errors.push('At least one bank account is required');
-                      }
-                      
                       // Debug: Log current state
                       console.log('Profile Data:', profileData);
                       console.log('Bank Data:', bankData);
@@ -2285,9 +2263,9 @@ const toggleFaq = (index) => {
                       allFields.forEach(field => {
                         let value;
                         if (field.key.startsWith('bank')) {
-                          value = bankData[field.key];
+                          value = bankData[field.key] || localStorage.getItem(field.key) || "";
                         } else {
-                          value = profileData[field.key];
+                          value = profileData[field.key] || localStorage.getItem(field.key) || "";
                         }
                         
                         console.log(`Checking ${field.key}:`, value);
@@ -2813,20 +2791,11 @@ const toggleFaq = (index) => {
       </div>
       {/* Loan Application Modal */}
       <LoanApplicationModal
-        isOpen={showLoanModal}
-        onClose={() => setShowLoanModal(false)}
-        loanDetails={newSelectedLoan}
-        onSubmit={(applicationData) => {
-          const newApp = {
-            id: `LA${Date.now()}`,
-            type: applicationData.loanType,
-            amount: `₹${Number(applicationData.requestedAmount).toLocaleString('en-IN')}`,
-            status: "Pending",
-            appliedDate: new Date().toISOString().split('T')[0],
-            bank: newSelectedLoan?.bank || "Bank"
-          };
-          setApplications(prev => [newApp, ...prev]);
-        }}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        selectedLoan={selectedLoan}
+        onSubmitApplication={handleNewApplication}
+        userEmail={userEmail}
       />
 
       {/* Loan Details Modal */}
