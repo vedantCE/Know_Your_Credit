@@ -1519,7 +1519,12 @@ const BankDashboard = () => {
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Aadhaar Number</p>
-                          <p className="font-semibold text-gray-800">{selectedCustomer.aadhaarNumber}</p>
+                          <p className="font-semibold text-gray-800">
+                            {selectedCustomer.aadhaarNumber ? 
+                              `XXXX-XXXX-${selectedCustomer.aadhaarNumber.slice(-4)}` : 
+                              'N/A'
+                            }
+                          </p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Phone Number</p>
@@ -1760,7 +1765,7 @@ const BankDashboard = () => {
                   <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100">
                     <CardTitle>Loan Risk Assessment</CardTitle>
                     <CardDescription>
-                      Enter loan request details to get an AI-powered risk assessment
+                      Enter loan request details to get an risk assessment
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6">
