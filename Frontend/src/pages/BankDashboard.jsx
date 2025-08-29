@@ -279,24 +279,25 @@ const ReviewForm = ({ application, onClose, onConfirm, bureauStatus = {} }) => {
 
           {/* Bureau Scores */}
           <Card className="p-3 shadow-md rounded-lg h-full">
-            <CardContent>
-              <h3 className="text-base font-semibold text-gray-800 mb-2">Bureau Scores</h3>
-              <div className="grid grid-cols-2 gap-2">
+            <CardContent className="pb-6">
+              <h3 className="text-base font-semibold text-gray-800 mb-4">Bureau Scores</h3>
+              <div className="grid grid-cols-2 gap-4" style={{ minHeight: '320px' }}>
                 {bureauScores.map((bureau) => {
                   const bureauKey = bureau.name.toUpperCase();
                   const currentStatus = bureauStatus[bureauKey]?.status || 'UP';
                   console.log(`${bureau.name} status:`, currentStatus);
                   return (
-                    <AnimatedSpeedometer
-                      key={bureau.name}
-                      bureauName={bureau.name}
-                      score={bureau.score}
-                      range={bureau.range}
-                      peerAverage={bureau.peerAverage}
-                      postAverage={bureau.postAverage}
-                      size="small"
-                      bureauStatus={currentStatus}
-                    />
+                    <div key={bureau.name} className="flex flex-col items-center">
+                      <AnimatedSpeedometer
+                        bureauName={bureau.name}
+                        score={bureau.score}
+                        range={bureau.range}
+                        peerAverage={bureau.peerAverage}
+                        postAverage={bureau.postAverage}
+                        size="small"
+                        bureauStatus={currentStatus}
+                      />
+                    </div>
                   );
                 })}
               </div>
