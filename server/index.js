@@ -624,6 +624,53 @@ app.put('/users/:id/suspend', async (req, res) => {
    }
 });
 
+// Check user endpoint for authentication verification
+app.post('/check-user', async (req, res) => {
+   try {
+      const { panNumber, aadhaarNumber, userId } = req.body;
+      
+      let user;
+      if (userId) {
+         user = await EmployeeModel.findById(userId);
+      } else if (panNumber && aadhaarNumber) {
+         user = await EmployeeModel.findOne({
+            panNumber: panNumber.toUpperCase(),
+            aadhaarNumber: aadhaarNumber
+         });
+      }
+      
+      if (user) {
+         res.json({
+            status: 'Success',
+            user: {
+               id: user._id,
+               email: user.email,
+               firstName: user.firstName,
+               lastName: user.lastName,
+               panNumber: user.panNumber,
+               aadhaarNumber: user.aadhaarNumber,
+               phoneNumber: user.phoneNumber,
+               creditScore: user.creditScore,
+               riskLevel: user.riskLevel,
+               role: user.role,
+               status: user.status
+            },
+            message: 'User found'
+         });
+      } else {
+         res.json({
+            status: 'Error',
+            message: 'User not found'
+         });
+      }
+   } catch (error) {
+      res.json({
+         status: 'Error',
+         message: 'Server error: ' + error.message
+      });
+   }
+});
+
 // Send OTP via SMS
 app.post('/send-otp', async (req, res) => {
    try {
