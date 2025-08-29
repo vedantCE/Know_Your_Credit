@@ -2324,50 +2324,8 @@ const BankDashboard = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Bureau Status Panel */}
-                <div className="lg:col-span-1">
-                  <BureauStatusPanel />
-                </div>
-                
-                {/* Bureau Status Overview */}
-                <div className="lg:col-span-2">
-                  <Card className="bg-white border border-gray-200 shadow-sm">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center gap-2 text-gray-800">
-                        <Database className="h-5 w-5 text-blue-600" />
-                        Bureau Status Overview
-                      </CardTitle>
-                      <CardDescription>Real-time operational status and performance metrics</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {bureauStatusData.map((bureau) => (
-                          <div key={bureau.name} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-semibold text-gray-800">{bureau.name}</h4>
-                              {getBureauStatusBadge(bureau.status)}
-                            </div>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Uptime:</span>
-                                <span className="font-medium">{bureau.uptime}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Response:</span>
-                                <span className="font-medium">{bureau.responseTime}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Updated:</span>
-                                <span className="font-medium text-green-600">{bureau.lastUpdate}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+              <div className="w-full">
+                <BureauStatusPanel />
               </div>
             </div>
           </TabsContent>
