@@ -782,7 +782,7 @@ const BankDashboard = () => {
             appliedDate: new Date(app.submittedAt).toISOString().split('T')[0],
             customerEmail: app.email,
             panNumber: app.pan || 'N/A',
-            aadhaarNumber: app.aadhaar || 'N/A',
+            aadhaarNumber: app.aadhaar,
             phoneNumber: app.phone,
             address: app.address || 'N/A',
             dateOfBirth: app.dob || '1990-01-01',
@@ -807,7 +807,7 @@ const BankDashboard = () => {
           appliedDate: new Date().toISOString().split('T')[0],
           customerEmail: user.email,
           panNumber: user.pan || 'N/A',
-          aadhaarNumber: user.aadhaar || 'N/A',
+          aadhaarNumber: user.aadhaar,
           phoneNumber: user.phone,
           address: user.city || 'N/A',
           dateOfBirth: '1990-01-01',
@@ -1183,7 +1183,7 @@ const BankDashboard = () => {
           setSelectedCustomer({
             customerName: foundUser.name,
             panNumber: foundUser.pan,
-            aadhaarNumber: foundUser.aadhaar,
+            aadhaarNumber: foundUser.aadhaar, // This should show the actual Aadhaar number
             phoneNumber: foundUser.phone,
             customerEmail: foundUser.email,
             address: foundUser.address,
@@ -1520,9 +1520,9 @@ const BankDashboard = () => {
                         <div>
                           <p className="text-sm text-gray-600">Aadhaar Number</p>
                           <p className="font-semibold text-gray-800">
-                            {selectedCustomer.aadhaarNumber ? 
+                            {selectedCustomer.aadhaarNumber && selectedCustomer.aadhaarNumber !== 'N/A' ? 
                               `XXXX-XXXX-${selectedCustomer.aadhaarNumber.slice(-4)}` : 
-                              'N/A'
+                              selectedCustomer.aadhaarNumber || 'N/A'
                             }
                           </p>
                         </div>
