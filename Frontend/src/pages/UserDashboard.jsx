@@ -51,6 +51,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import AnimatedSpeedometer from "@/components/AnimatedSpeedometer";
+import ChatBot from "@/components/ChatBot";
 
 /*
   This file extends the original UserDashboard by adding a full loan application flow.
@@ -72,11 +73,261 @@ const formatINR = (n) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-// Credit Calculator (unchanged logic, small refactor)
-const CreditCalculator = ({}) => {
+// Risk Assessment Component
+const RiskAssessment = ({ userCreditScore, userAnnualIncome }) => {
+  const [loanAmount, setLoanAmount] = useState("");
+  const [loanTenure, setLoanTenure] = useState("12");
+  const [loanPurpose, setLoanPurpose] = useState("personal");
+  const [monthlyIncome, setMonthlyIncome] = useState(() => {
+    if (userAnnualIncome) {
+      const cleanIncome = userAnnualIncome.replace(/[^0-9]/g, '');
+      const leftAmount = cleanIncome.length > 7 ? cleanIncome.substring(0, 7) : cleanIncome;
+      return (parseInt(leftAmount) / 12).toString();
+    }
+    return "";
+  });
+  const [employmentType, setEmploymentType] = useState("Salaried");
+  const [employmentTenure, setEmploymentTenure] = useState("2");
+  const [riskAssessment, setRiskAssessment] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const generateRiskAssessment = (loanAmount, loanTenure, monthlyIncome, employmentType, employmentTenure, loanPurpose) => {
+    const loanAmt = parseInt(loanAmount) || 0;
+    const tenure = parseInt(loanTenure) || 12;
+    const income = parseInt(monthlyIncome) || 0;
+    const empTenure = parseInt(employmentTenure) || 0;
+    const creditScore = userCreditScore || 700;
+
+    const monthlyEMI = Math.round((loanAmt * 1.1) / tenure);
+    const emiToIncomeRatio = income > 0 ? ((monthlyEMI / income) * 100).toFixed(1) : 100;
+
+    let riskScore = 0;
+    const riskFactors = [];
+    let recommendation = "APPROVE";
+    let recommendationColor = "green";
+
+    if (emiToIncomeRatio > 50) {
+      riskScore += 40;
+      riskFactors.push(`High EMI-to-income ratio (${emiToIncomeRatio}%) exceeds the recommended 50% threshold.`);
+    } else if (emiToIncomeRatio > 30) {
+      riskScore += 20;
+      riskFactors.push(`Elevated EMI-to-income ratio (${emiToIncomeRatio}%) above comfortable 30% level.`);
+    }
+
+    if (empTenure < 2) {
+      riskScore += 25;
+      riskFactors.push(`Short employment tenure of ${empTenure} year(s) suggests potential job instability.`);
+    }
+
+    if (creditScore < 650) {
+      riskScore += 30;
+      riskFactors.push(`Low credit score (${creditScore}) indicates higher default risk.`);
+    } else if (creditScore < 750) {
+      riskScore += 15;
+      riskFactors.push(`Moderate credit score (${creditScore}) requires careful evaluation.`);
+    }
+
+    if (employmentType === "Self-Employed" || employmentType === "Freelancer") {
+      riskScore += 15;
+      riskFactors.push(`${employmentType} status may lead to irregular income streams.`);
+    }
+
+    if (riskScore >= 60) {
+      recommendation = "REJECT";
+      recommendationColor = "red";
+    } else if (riskScore >= 30) {
+      recommendation = "REVIEW";
+      recommendationColor = "yellow";
+    }
+
+    const analysisText = riskScore >= 60
+      ? `High risk application. Credit score of ${creditScore} combined with EMI burden of ${emiToIncomeRatio}% suggests potential repayment difficulties.`
+      : riskScore >= 30
+        ? `Moderate risk profile. The ${emiToIncomeRatio}% DTI is manageable, but additional verification is advised.`
+        : `Low-risk application with strong credit score (${creditScore}) and manageable EMI ratio (${emiToIncomeRatio}%).`;
+
+    return {
+      recommendation,
+      recommendationColor,
+      riskScore,
+      riskFactors,
+      emiToIncomeRatio,
+      monthlyEMI,
+      analysisText,
+    };
+  };
+
+  const handleAssessRisk = async () => {
+    setIsLoading(true);
+    try {
+      const fallbackAssessment = generateRiskAssessment(loanAmount, loanTenure, monthlyIncome, employmentType, employmentTenure, loanPurpose);
+      setRiskAssessment(fallbackAssessment);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Loan Amount (₹)</Label>
+          <Input
+            value={loanAmount}
+            onChange={(e) => setLoanAmount(e.target.value)}
+            placeholder="Enter loan amount"
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label>Loan Tenure (months)</Label>
+          <Input
+            value={loanTenure}
+            onChange={(e) => setLoanTenure(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label>Monthly Income (₹)</Label>
+          <div className="relative">
+            <Input
+              value={monthlyIncome}
+              onChange={(e) => setMonthlyIncome(e.target.value)}
+              placeholder="Enter monthly income"
+              className="mt-1"
+            />
+            {userAnnualIncome && (
+              <span className="absolute right-2 top-3 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                ✓ Auto-filled
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          <Label>Employment Type</Label>
+          <select
+            value={employmentType}
+            onChange={(e) => setEmploymentType(e.target.value)}
+            className="w-full mt-1 p-2 border border-gray-300 rounded-md"
+          >
+            <option>Salaried</option>
+            <option>Self-Employed</option>
+            <option>Business Owner</option>
+            <option>Freelancer</option>
+          </select>
+        </div>
+        <div>
+          <Label>Employment Tenure (years)</Label>
+          <Input
+            value={employmentTenure}
+            onChange={(e) => setEmploymentTenure(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label>Loan Purpose</Label>
+          <select
+            value={loanPurpose}
+            onChange={(e) => setLoanPurpose(e.target.value)}
+            className="w-full mt-1 p-2 border border-gray-300 rounded-md"
+          >
+            <option value="personal">Personal</option>
+            <option value="home">Home</option>
+            <option value="car">Car</option>
+            <option value="business">Business</option>
+            <option value="education">Education</option>
+          </select>
+        </div>
+      </div>
+      
+      <Button
+        onClick={handleAssessRisk}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+        disabled={!loanAmount || !monthlyIncome || isLoading}
+      >
+        {isLoading ? 'Analyzing...' : 'Risk Assessment'}
+      </Button>
+
+      {riskAssessment && (
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Risk Assessment Result</CardTitle>
+              <Badge className={`bg-${riskAssessment.recommendationColor === 'green' ? 'green' : riskAssessment.recommendationColor === 'yellow' ? 'yellow' : 'red'}-100 text-${riskAssessment.recommendationColor === 'green' ? 'green' : riskAssessment.recommendationColor === 'yellow' ? 'yellow' : 'red'}-700`}>
+                {riskAssessment.recommendation}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                <h4 className="font-semibold text-blue-800">Analysis Summary</h4>
+              </div>
+              <p className="text-sm text-blue-700">{riskAssessment.analysisText}</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Monthly EMI</p>
+                <p className="text-xl font-bold text-gray-800">₹{riskAssessment.monthlyEMI.toLocaleString()}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">EMI to Income Ratio</p>
+                <p className="text-xl font-bold text-gray-800">{riskAssessment.emiToIncomeRatio}%</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Risk Score</p>
+                <p className="text-xl font-bold text-gray-800">{riskAssessment.riskScore}/100</p>
+              </div>
+            </div>
+            
+            {riskAssessment.riskFactors.length > 0 && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <h4 className="font-semibold text-red-800">Risk Factors</h4>
+                </div>
+                <div className="space-y-2">
+                  {riskAssessment.riskFactors.map((factor, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                      <p className="text-sm text-red-700">{factor}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+// Credit Calculator with auto-fetch user credit score
+const CreditCalculator = ({ userCreditScore, userAnnualIncome }) => {
   const [calcLoanAmount, setCalcLoanAmount] = useState("");
-  const [calcCreditScore, setCalcCreditScore] = useState("");
-  const [calcIncome, setCalcIncome] = useState("");
+  const [calcCreditScore, setCalcCreditScore] = useState(userCreditScore?.toString() || "");
+  const [calcIncome, setCalcIncome] = useState(() => {
+    if (userAnnualIncome) {
+      const cleanIncome = userAnnualIncome.replace(/[^0-9]/g, '');
+      return cleanIncome.length > 7 ? cleanIncome.substring(0, 7) : cleanIncome;
+    }
+    return "";
+  });
+
+  // Auto-populate when user data changes
+  useEffect(() => {
+    if (userCreditScore) {
+      setCalcCreditScore(userCreditScore.toString());
+    }
+    if (userAnnualIncome) {
+      const cleanIncome = userAnnualIncome.replace(/[^0-9]/g, '');
+      const leftAmount = cleanIncome.length > 7 ? cleanIncome.substring(0, 7) : cleanIncome;
+      setCalcIncome(leftAmount);
+    }
+  }, [userCreditScore, userAnnualIncome]);
 
   const parseNum = (v) => {
     const n = Number((v || "").toString().replace(/,/g, ""));
@@ -119,9 +370,16 @@ const CreditCalculator = ({}) => {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-blue-800">
-          Credit Score:
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-blue-800">
+            Credit Score:
+          </label>
+          {userCreditScore && (
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              ✓ Auto-filled from profile
+            </span>
+          )}
+        </div>
         <Input
           type="text"
           value={calcCreditScore}
@@ -132,9 +390,16 @@ const CreditCalculator = ({}) => {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-blue-800">
-          Yearly Income:
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-blue-800">
+            Yearly Income:
+          </label>
+          {userAnnualIncome && (
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              ✓ Auto-filled from profile
+            </span>
+          )}
+        </div>
         <Input
           type="text"
           value={calcIncome}
@@ -1621,7 +1886,7 @@ const toggleFaq = (index) => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                  Know Your Credit
+                  CreditScore
                 </h1>
                 <Badge className="bg-blue-100 text-blue-700 border-blue-200 mt-1">
                   User Portal
@@ -1824,7 +2089,7 @@ const toggleFaq = (index) => {
               <div className="text-2xl font-bold text-blue-700">
                 {lastUpdated}
               </div>
-              <p className="text-xs text-blue-600">Next update in 25 days</p>
+              <p className="text-xs text-blue-600">Update Every Week</p>
             </CardContent>
           </Card>
         </div>
@@ -1866,7 +2131,7 @@ const toggleFaq = (index) => {
               value="calculator"
               className="rounded-full data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200"
             >
-              Credit Calculator
+              Calculate Risk & Credit
             </TabsTrigger>
             <TabsTrigger
               value="faq"
@@ -2613,17 +2878,34 @@ const toggleFaq = (index) => {
             </div>
           </TabsContent>
           <TabsContent value="calculator">
-            <Card>
-              <CardHeader>
-                <CardTitle>Credit Eligibility Calculator</CardTitle>
-                <CardDescription>
-                  Estimate your loan eligibility based on your credit profile
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CreditCalculator />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Credit Eligibility Calculator</CardTitle>
+                  <CardDescription>
+                    Estimate your loan eligibility based on your credit profile
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CreditCalculator 
+                    userCreditScore={creditScore}
+                    userAnnualIncome={userAnnualIncome}
+                  />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Loan Risk Assessment</CardTitle>
+                  <CardDescription>
+                    Get detailed risk analysis for your loan application
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RiskAssessment userCreditScore={creditScore} userAnnualIncome={userAnnualIncome} />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="faq">
@@ -2922,6 +3204,9 @@ const toggleFaq = (index) => {
           </div>
         </div>
       )}
+      
+      {/* AI Chatbot */}
+      <ChatBot />
     </div>
   );
 };
