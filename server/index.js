@@ -10,6 +10,7 @@ const bureauRoutes=require('./routes/bureau');
 const mockBureauAPIs=require('./services/mockBureauAPIs');
 const employeeRoutes=require('./routes/employees');
 const otpRoutes=require('./routes/otp');
+const chatRoutes=require('./routes/chat');
 const emailService=require('./services/emailService');
 
 const MONGO_URI="mongodb+srv://vedantbhattce28:3yhEkDTd5S8fKFAs@cluster1.dbi1j2u.mongodb.net/kycDB?retryWrites=true&w=majority"
@@ -25,6 +26,7 @@ app.use('/api/bureau', bureauRoutes);
 app.use('/api/mock-bureau', require('./routes/mockBureau'));
 app.use('/api/employees', employeeRoutes);
 app.use('/api/otp', otpRoutes);
+app.use('/api/chat', chatRoutes);
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Atlas Connected Successfully'))
@@ -713,6 +715,12 @@ app.post('/send-otp', async (req, res) => {
    }
 });
 
+// Test endpoint for chat
+app.get('/api/chat/test', (req, res) => {
+  res.json({ message: 'Chat API is working!' });
+});
+
 app.listen(3001,()=>{
-    console.log("server is running")
+    console.log("server is running on port 3001")
+    console.log("Chat API available at: http://localhost:3001/api/chat")
 })

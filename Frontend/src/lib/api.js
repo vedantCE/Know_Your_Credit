@@ -61,5 +61,19 @@ export const api = {
   getSignupLogs: async () => {
     const response = await fetch(`${API_BASE_URL}/signup-logs`);
     return response.json();
+  },
+
+  // Chat API
+  sendChatMessage: async (message, userId, userContext) => {
+    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message, userId, userContext })
+    });
+    const data = await response.json();
+    console.log('Chat API Response:', data); // Debug log
+    return data;
   }
 };

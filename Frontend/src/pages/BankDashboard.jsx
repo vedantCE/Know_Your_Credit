@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -181,6 +182,95 @@ const ReviewForm = ({ application, onClose, onConfirm, bureauStatus = {} }) => {
     return item;
   });
 
+  // Generate loan risk assessment
+  const generateLoanRiskAssessment = () => {
+    const loanAmount = parseInt(application.amount.replace(/[₹,]/g, '')) || 0;
+    const annualIncome = parseInt(application.annualIncome.replace(/[₹,]/g, '')) || 0;
+    const creditScore = bureauScores[0].score;
+    
+    let riskLevel = 'Medium';
+    let riskColor = 'yellow';
+    let recommendation = 'REVIEW';
+    
+    // Calculate debt-to-income ratio (simplified)
+    const monthlyIncome = annualIncome / 12;
+    const estimatedEMI = loanAmount * 0.1; // Rough 10% of loan as EMI
+    const dtiRatio = monthlyIncome > 0 ? (estimatedEMI / monthlyIncome * 100) : 100;
+    
+    // Risk assessment logic
+    if (creditScore >= 750 && dtiRatio < 30) {
+      riskLevel = 'Low';
+      riskColor = 'green';
+      recommendation = 'APPROVE';
+    } else if (creditScore < 650 || dtiRatio > 50) {
+      riskLevel = 'High';
+      riskColor = 'red';
+      recommendation = 'REJECT';
+    }
+    
+    return {
+      riskLevel,
+      riskColor,
+      recommendation,
+      creditScore,
+      dtiRatio: dtiRatio.toFixed(1),
+      estimatedEMI: estimatedEMI.toLocaleString('en-IN')
+    };
+  };
+
+  // Generate graph analysis points
+  const generateGraphAnalysis = () => {
+    const latestScores = adjustedHistory[adjustedHistory.length - 1];
+    const previousScores = adjustedHistory[adjustedHistory.length - 2];
+    
+    const analysis = [];
+    
+    // Trend analysis
+    const cibilTrend = latestScores.CIBIL - previousScores.CIBIL;
+    const avgScore = (latestScores.CIBIL + latestScores.Equifax + latestScores.Experian + latestScores.CRIF) / 4;
+    
+    if (cibilTrend > 0) {
+      analysis.push(`CIBIL score improved by ${cibilTrend} points from last month, showing positive credit behavior`);
+    } else if (cibilTrend < 0) {
+      analysis.push(`CIBIL score declined by ${Math.abs(cibilTrend)} points, indicating potential credit stress`);
+    } else {
+      analysis.push(`CIBIL score remained stable, showing consistent credit management`);
+    }
+    
+    // Score consistency
+    const scores = [latestScores.CIBIL, latestScores.Equifax, latestScores.Experian, latestScores.CRIF];
+    const maxScore = Math.max(...scores);
+    const minScore = Math.min(...scores);
+    const variance = maxScore - minScore;
+    
+    if (variance < 30) {
+      analysis.push(`Low bureau score variance (${variance} points) indicates reliable credit profile`);
+    } else if (variance < 60) {
+      analysis.push(`Moderate bureau score variance (${variance} points) requires additional verification`);
+    } else {
+      analysis.push(`High bureau score variance (${variance} points) suggests data inconsistencies`);
+    }
+    
+    // Overall trend
+    const overallTrend = adjustedHistory.slice(-3).reduce((acc, curr, idx, arr) => {
+      if (idx === 0) return 0;
+      return acc + (curr.CIBIL - arr[idx - 1].CIBIL);
+    }, 0);
+    
+    if (overallTrend > 10) {
+      analysis.push(`Strong upward trend over last 3 months (+${overallTrend} points) shows improving creditworthiness`);
+    } else if (overallTrend < -10) {
+      analysis.push(`Declining trend over last 3 months (${overallTrend} points) raises concerns about repayment capacity`);
+    } else {
+      analysis.push(`Stable credit score pattern over recent months indicates consistent financial behavior`);
+    }
+    
+    return analysis;
+  };
+
+  const loanRiskAssessment = generateLoanRiskAssessment();
+  const graphAnalysis = generateGraphAnalysis();
+
   const handleReviewConfirm = () => {
     if (onConfirm) {
       onConfirm(application.id, "Reviewed");
@@ -274,6 +364,19 @@ const ReviewForm = ({ application, onClose, onConfirm, bureauStatus = {} }) => {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              
+              {/* Graph Analysis Points */}
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Credit Score Analysis:</h4>
+                <div className="space-y-1">
+                  {graphAnalysis.map((point, index) => (
+                    <div key={index} className="text-sm text-gray-600 flex items-start gap-1">
+                      <span className="text-blue-500">•</span>
+                      <span>{point}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -281,13 +384,13 @@ const ReviewForm = ({ application, onClose, onConfirm, bureauStatus = {} }) => {
           <Card className="p-3 shadow-md rounded-lg h-full">
             <CardContent className="pb-6">
               <h3 className="text-base font-semibold text-gray-800 mb-4">Bureau Scores</h3>
-              <div className="grid grid-cols-2 gap-4" style={{ minHeight: '320px' }}>
+              <div className="grid grid-cols-2 gap-4 justify-items-center" style={{ minHeight: '260px' }}>
                 {bureauScores.map((bureau) => {
                   const bureauKey = bureau.name.toUpperCase();
                   const currentStatus = bureauStatus[bureauKey]?.status || 'UP';
                   console.log(`${bureau.name} status:`, currentStatus);
                   return (
-                    <div key={bureau.name} className="flex flex-col items-center">
+                    <div key={bureau.name} className="flex flex-col items-center justify-center w-full">
                       <AnimatedSpeedometer
                         bureauName={bureau.name}
                         score={bureau.score}
@@ -304,6 +407,67 @@ const ReviewForm = ({ application, onClose, onConfirm, bureauStatus = {} }) => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Loan Risk Assessment Result */}
+        <Card className="mt-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              Loan Risk Assessment Result
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Risk Level:</span>
+                  <Badge className={`bg-${loanRiskAssessment.riskColor}-100 text-${loanRiskAssessment.riskColor}-700 border-${loanRiskAssessment.riskColor}-200`}>
+                    {loanRiskAssessment.riskLevel} Risk
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Recommendation:</span>
+                  <Badge className={`bg-${loanRiskAssessment.riskColor}-100 text-${loanRiskAssessment.riskColor}-700 border-${loanRiskAssessment.riskColor}-200 font-bold`}>
+                    {loanRiskAssessment.recommendation}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Credit Score:</span>
+                  <span className="text-sm font-bold text-blue-600">{loanRiskAssessment.creditScore}</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Loan Amount:</span>
+                  <span className="text-sm font-bold text-green-600">{application.amount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Est. EMI:</span>
+                  <span className="text-sm font-bold text-orange-600">₹{loanRiskAssessment.estimatedEMI}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">DTI Ratio:</span>
+                  <span className={`text-sm font-bold ${parseFloat(loanRiskAssessment.dtiRatio) > 40 ? 'text-red-600' : 'text-green-600'}`}>
+                    {loanRiskAssessment.dtiRatio}%
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Risk Assessment Summary */}
+            <div className="mt-4 p-3 bg-white rounded-lg border border-blue-100">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Assessment Summary:</h4>
+              <p className="text-xs text-gray-600">
+                {loanRiskAssessment.recommendation === 'APPROVE' 
+                  ? `Strong credit profile with score of ${loanRiskAssessment.creditScore} and manageable DTI ratio of ${loanRiskAssessment.dtiRatio}%. Recommended for approval with standard terms.`
+                  : loanRiskAssessment.recommendation === 'REJECT'
+                  ? `High risk profile due to ${loanRiskAssessment.creditScore < 650 ? 'low credit score' : 'high DTI ratio'}. Consider rejection or require additional collateral/guarantor.`
+                  : `Moderate risk profile requiring manual review. Credit score of ${loanRiskAssessment.creditScore} with DTI ratio of ${loanRiskAssessment.dtiRatio}% needs careful evaluation.`
+                }
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Review Confirm Button */}
         <div className="flex justify-end mt-4">
@@ -499,6 +663,8 @@ const BankDashboard = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [loanApplications, setLoanApplications] = useState([]);
   const [bureauStatus, setBureauStatus] = useState({});
 
@@ -1171,42 +1337,104 @@ const BankDashboard = () => {
     setReviewingApplication(null);
   };
 
-  const handleSearch = async () => {
-    if (panInput.trim() || aadhaarInput.trim()) {
-      setLoading(true);
-      try {
-        // Search in real user database
-        const searchQuery = panInput.trim() || aadhaarInput.trim();
-        const response = await api.searchUsers(searchQuery);
+  // Validation functions
+  const validatePAN = (pan) => {
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    return panRegex.test(pan.toUpperCase());
+  };
 
-        if (response.status === "Success" && response.users.length > 0) {
-          const foundUser = response.users[0];
-          setSelectedCustomer({
-            customerName: foundUser.name,
-            panNumber: foundUser.pan,
-            aadhaarNumber: foundUser.aadhaar, // This should show the actual Aadhaar number
-            phoneNumber: foundUser.phone,
-            customerEmail: foundUser.email,
-            address: foundUser.address,
-            occupation: foundUser.occupation,
-            annualIncome: foundUser.annualIncome,
-            creditScore: foundUser.creditScore,
-            riskLevel: foundUser.riskLevel,
-            status: foundUser.status
-          });
-          setShowCustomerInfo(true);
-        } else {
-          // Show message that user not found
-          setSelectedCustomer(null);
-          setShowCustomerInfo(true);
-        }
-      } catch (error) {
-        console.error('Search failed:', error);
+  const validateAadhaar = (aadhaar) => {
+    const aadhaarRegex = /^[0-9]{12}$/;
+    return aadhaarRegex.test(aadhaar.replace(/\s/g, ''));
+  };
+
+  const validateInputs = () => {
+    const errors = {};
+    const pan = panInput.trim().toUpperCase();
+    const aadhaar = aadhaarInput.trim().replace(/\s/g, '');
+
+    if (!pan && !aadhaar) {
+      errors.general = "Please enter either PAN or Aadhaar number";
+    }
+
+    if (pan && !validatePAN(pan)) {
+      errors.pan = "Invalid PAN format (e.g., ABCDE1234F)";
+    }
+
+    if (aadhaar && !validateAadhaar(aadhaar)) {
+      errors.aadhaar = "Invalid Aadhaar format (12 digits)";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const clearSearch = () => {
+    setPanInput("");
+    setAadhaarInput("");
+    setShowCustomerInfo(false);
+    setSelectedCustomer(null);
+    setSearchError("");
+    setValidationErrors({});
+  };
+
+  const handleSearch = async () => {
+    setSearchError("");
+    
+    if (!validateInputs()) {
+      return;
+    }
+
+    setLoading(true);
+    
+    // Create timeout promise
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Search timeout')), 10000)
+    );
+
+    try {
+      const searchQuery = (panInput.trim().toUpperCase() || aadhaarInput.trim().replace(/\s/g, ''));
+      
+      // Race between API call and timeout
+      const response = await Promise.race([
+        api.searchUsers(searchQuery),
+        timeoutPromise
+      ]);
+
+      if (response.status === "Success" && response.users.length > 0) {
+        const foundUser = response.users[0];
+        setSelectedCustomer({
+          customerName: foundUser.name,
+          panNumber: foundUser.pan,
+          aadhaarNumber: foundUser.aadhaar,
+          phoneNumber: foundUser.phone,
+          customerEmail: foundUser.email,
+          address: foundUser.address,
+          occupation: foundUser.occupation,
+          annualIncome: foundUser.annualIncome,
+          creditScore: foundUser.creditScore,
+          riskLevel: foundUser.riskLevel,
+          status: foundUser.status
+        });
+        setShowCustomerInfo(true);
+        setSearchError("");
+      } else {
         setSelectedCustomer(null);
         setShowCustomerInfo(true);
-      } finally {
-        setLoading(false);
+        setSearchError(`No user found with ${panInput ? 'PAN: ' + panInput.toUpperCase() : 'Aadhaar: ' + aadhaarInput}`);
       }
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSelectedCustomer(null);
+      setShowCustomerInfo(false);
+      
+      if (error.message === 'Search timeout') {
+        setSearchError("Search request timed out. Please try again.");
+      } else {
+        setSearchError("Search failed. Please check your connection and try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1478,26 +1706,80 @@ const BankDashboard = () => {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <Input
-                      placeholder="Enter PAN (e.g., ABCDE1234F)"
-                      className="border-gray-300 focus:border-blue-500"
-                      value={panInput}
-                      onChange={(e) => setPanInput(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Enter Aadhaar (e.g., 123456789012)"
-                      className="border-gray-300 focus:border-blue-500"
-                      value={aadhaarInput}
-                      onChange={(e) => setAadhaarInput(e.target.value)}
-                    />
+                    <div>
+                      <Input
+                        placeholder="Enter PAN (e.g., ABCDE1234F)"
+                        className={`border-gray-300 focus:border-blue-500 ${validationErrors.pan ? 'border-red-500' : ''}`}
+                        value={panInput}
+                        onChange={(e) => {
+                          setPanInput(e.target.value.toUpperCase());
+                          if (validationErrors.pan) {
+                            setValidationErrors(prev => ({ ...prev, pan: '' }));
+                          }
+                        }}
+                        maxLength={10}
+                      />
+                      {validationErrors.pan && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.pan}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Input
+                        placeholder="Enter Aadhaar (e.g., 123456789012)"
+                        className={`border-gray-300 focus:border-blue-500 ${validationErrors.aadhaar ? 'border-red-500' : ''}`}
+                        value={aadhaarInput}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          setAadhaarInput(value);
+                          if (validationErrors.aadhaar) {
+                            setValidationErrors(prev => ({ ...prev, aadhaar: '' }));
+                          }
+                        }}
+                        maxLength={12}
+                      />
+                      {validationErrors.aadhaar && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.aadhaar}</p>
+                      )}
+                    </div>
                   </div>
-                  <Button
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                    onClick={handleSearch}
-                    disabled={loading}
-                  >
-                    {loading ? 'Searching...' : 'Search'}
-                  </Button>
+                  
+                  {validationErrors.general && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-700 text-sm">{validationErrors.general}</p>
+                    </div>
+                  )}
+                  
+                  {searchError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-700 text-sm">{searchError}</p>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
+                      onClick={handleSearch}
+                      disabled={loading || (!panInput.trim() && !aadhaarInput.trim())}
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Searching...
+                        </div>
+                      ) : (
+                        'Search'
+                      )}
+                    </Button>
+                    {(showCustomerInfo || panInput || aadhaarInput) && (
+                      <Button
+                        variant="outline"
+                        onClick={clearSearch}
+                        className="px-4"
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1523,7 +1805,7 @@ const BankDashboard = () => {
                           <p className="font-semibold text-gray-800">
                             {selectedCustomer.aadhaarNumber && selectedCustomer.aadhaarNumber !== 'N/A' ? 
                               `XXXX-XXXX-${selectedCustomer.aadhaarNumber.slice(-4)}` : 
-                              selectedCustomer.aadhaarNumber || 'N/A'
+                              'N/A'
                             }
                           </p>
                         </div>
@@ -1551,10 +1833,21 @@ const BankDashboard = () => {
                     ) : (
                       <div className="text-center py-8">
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <p className="text-yellow-800 font-medium">User Not Found</p>
-                          <p className="text-yellow-600 text-sm mt-1">
-                            No user found with PAN: {panInput} or Aadhaar: {aadhaarInput}
+                          <div className="flex items-center justify-center mb-2">
+                            <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                            <p className="text-yellow-800 font-medium">User Not Found</p>
+                          </div>
+                          <p className="text-yellow-600 text-sm">
+                            {searchError || `No user found with the provided ${panInput ? 'PAN' : 'Aadhaar'} number`}
                           </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearSearch}
+                            className="mt-3 text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                          >
+                            Try Another Search
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -1596,57 +1889,52 @@ const BankDashboard = () => {
                         <div className="text-center">
                           <p className="text-sm text-gray-600 mb-2">Normalized Credit Score</p>
                           <div className="relative">
-                            <div className="opacity-60">
-                              <AnimatedSpeedometer
-                                bureauName="Normalized"
-                                score={selectedCustomer ? selectedCustomer.creditScore : 770}
-                                range="300-900"
-                                peerAverage={78}
-                                postAverage={78}
-                                size="large"
-                              />
-                            </div>
+                            <AnimatedSpeedometer
+                              bureauName="Normalized"
+                              score={selectedCustomer?.creditScore || 0}
+                              range="300-900"
+                              peerAverage={78}
+                              postAverage={78}
+                              size="large"
+                            />
                           </div>
                           <div className="flex items-center justify-center mt-4">
-                            <div
-                              className={`flex items-center px-3 py-1 rounded-full ${selectedCustomer
-                                  ? selectedCustomer.creditScore >= 750
+                            {selectedCustomer && (
+                              <div
+                                className={`flex items-center px-3 py-1 rounded-full ${
+                                  selectedCustomer.creditScore >= 750
                                     ? "bg-green-100"
                                     : selectedCustomer.creditScore >= 650
                                       ? "bg-yellow-100"
                                       : "bg-red-100"
-                                  : "bg-green-100"
                                 }`}
-                            >
-                              <CheckCircle
-                                className={`h-4 w-4 mr-1 ${selectedCustomer
-                                    ? selectedCustomer.creditScore >= 750
+                              >
+                                <CheckCircle
+                                  className={`h-4 w-4 mr-1 ${
+                                    selectedCustomer.creditScore >= 750
                                       ? "text-green-600"
                                       : selectedCustomer.creditScore >= 650
                                         ? "text-yellow-600"
                                         : "text-red-600"
-                                    : "text-green-600"
                                   }`}
-                              />
-                              <span
-                                className={`text-sm font-medium ${selectedCustomer
-                                    ? selectedCustomer.creditScore >= 750
+                                />
+                                <span
+                                  className={`text-sm font-medium ${
+                                    selectedCustomer.creditScore >= 750
                                       ? "text-green-700"
                                       : selectedCustomer.creditScore >= 650
                                         ? "text-yellow-700"
                                         : "text-red-700"
-                                    : "text-green-700"
                                   }`}
-                              >
-                                {selectedCustomer
-                                  ? selectedCustomer.creditScore >= 750
+                                >
+                                  {selectedCustomer.creditScore >= 750
                                     ? "Low Risk"
                                     : selectedCustomer.creditScore >= 650
                                       ? "Medium Risk"
-                                      : "High Risk"
-                                  : "Low Risk"}
-                              </span>
-                            </div>
+                                      : "High Risk"}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <p className="text-xs text-gray-500 mt-2">
                             Last updated on Feb 2025
@@ -1670,9 +1958,9 @@ const BankDashboard = () => {
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           <div className="text-center">
-                            <span className="text-4xl font-bold text-gray-800">1</span>
+                            <span className="text-4xl font-bold text-gray-800">{selectedCustomer ? 1 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 3) : 1}</span>
                             <p className="text-sm text-gray-600">
-                              Total outstanding ₹54,726
+                              Total outstanding ₹{selectedCustomer ? (25000 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 200000)).toLocaleString('en-IN') : '54,726'}
                             </p>
                           </div>
                           <div className="space-y-3">
@@ -1680,12 +1968,12 @@ const BankDashboard = () => {
                             <div className="border rounded-lg p-4">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <p className="font-semibold text-gray-800">Auto Loan</p>
-                                  <p className="text-sm text-gray-600">CitiBank</p>
+                                  <p className="font-semibold text-gray-800">{selectedCustomer ? ['Auto Loan', 'Home Loan', 'Personal Loan', 'Credit Card'][selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 4] : 'Auto Loan'}</p>
+                                  <p className="text-sm text-gray-600">{selectedCustomer ? ['CitiBank', 'HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank'][selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 5] : 'CitiBank'}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-bold text-gray-800">₹54,726</p>
-                                  <p className="text-sm text-gray-600">EMI: ₹1,244</p>
+                                  <p className="font-bold text-gray-800">₹{selectedCustomer ? (25000 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 200000)).toLocaleString('en-IN') : '54,726'}</p>
+                                  <p className="text-sm text-gray-600">EMI: ₹{selectedCustomer ? Math.round((25000 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 200000)) * 0.02).toLocaleString('en-IN') : '1,244'}</p>
                                 </div>
                               </div>
                             </div>
@@ -1702,10 +1990,10 @@ const BankDashboard = () => {
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           <div>
-                            <span className="text-3xl font-bold text-gray-800">14</span>
+                            <span className="text-3xl font-bold text-gray-800">{selectedCustomer ? 6 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 48) : 14}</span>
                             <span className="text-lg text-gray-600 ml-2">months</span>
                           </div>
-                          <p className="text-sm text-gray-600">Oldest account: Mortgage</p>
+                          <p className="text-sm text-gray-600">Oldest account: {selectedCustomer ? ['Mortgage', 'Credit Card', 'Auto Loan', 'Personal Loan'][selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 4] : 'Mortgage'}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -1719,11 +2007,11 @@ const BankDashboard = () => {
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
                             <div>
-                              <span className="text-3xl font-bold text-green-600">57</span>
+                              <span className="text-3xl font-bold text-green-600">{selectedCustomer ? 30 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 50) : 57}</span>
                               <p className="text-sm text-gray-600">On-time payments</p>
                             </div>
                             <div>
-                              <span className="text-3xl font-bold text-red-600">1</span>
+                              <span className="text-3xl font-bold text-red-600">{selectedCustomer ? selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 4 : 1}</span>
                               <p className="text-sm text-gray-600">
                                 Missed installments across all loans
                               </p>
@@ -1734,10 +2022,10 @@ const BankDashboard = () => {
                           <div className="space-y-2">
                             <div className="flex justify-between">
                               <span className="text-sm text-gray-600">Payment History</span>
-                              <span className="text-sm font-semibold">98% On-time</span>
+                              <span className="text-sm font-semibold">{selectedCustomer ? (() => { const onTime = 30 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 50); const missed = selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 4; return Math.round((onTime / (onTime + missed)) * 100); })() : 98}% On-time</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="bg-green-500 h-2 rounded-full" style={{ width: "98%" }}></div>
+                              <div className="bg-green-500 h-2 rounded-full" style={{ width: `${selectedCustomer ? (() => { const onTime = 30 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 50); const missed = selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 4; return Math.round((onTime / (onTime + missed)) * 100); })() : 98}%` }}></div>
                             </div>
                           </div>
 
@@ -1745,10 +2033,10 @@ const BankDashboard = () => {
                           <div className="space-y-2">
                             <div className="flex justify-between">
                               <span className="text-sm text-gray-600">Credit Utilization</span>
-                              <span className="text-sm font-semibold">15%</span>
+                              <span className="text-sm font-semibold">{selectedCustomer ? 10 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 40) : 15}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="bg-green-500 h-2 rounded-full" style={{ width: "15%" }}></div>
+                              <div className="bg-green-500 h-2 rounded-full" style={{ width: `${selectedCustomer ? 10 + (selectedCustomer.customerName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 40) : 15}%` }}></div>
                             </div>
                           </div>
                         </div>
@@ -2536,3 +2824,4 @@ const BankDashboard = () => {
   );
 };
 export default BankDashboard;
+
