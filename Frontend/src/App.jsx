@@ -13,6 +13,7 @@ import BankDashboard from "./pages/BankDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import CreditLookup from "./pages/CreditLookup";
 import NotFound from "./pages/NotFound";
+import AboutUs from "./pages/AboutUs";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/bank-dashboard" element={<BankDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/credit-lookup" element={<CreditLookup />} />
+          <Route path="/about" element={<AboutUs />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
