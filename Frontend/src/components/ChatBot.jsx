@@ -12,7 +12,7 @@ const ChatBot = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hello! I'm your comprehensive finance AI assistant. I can help you with credit scores, loans, investments, insurance, tax planning, banking, and all financial topics. Ask me anything about finance!",
+      text: "Hello! I'm your KYC AI Assistant - your expert guide for all financial matters! 🏦\n\nI can help you with:\n• Credit Score Analysis & Improvement\n• Loan Guidance (Personal, Home, Car, Business)\n• Investment Planning (SIP, Mutual Funds, Stocks)\n• Credit Card Recommendations\n• Tax Optimization Strategies\n• Insurance Planning\n• EMI Calculations\n• Financial Goal Setting\n\nWhat financial topic interests you today?",
       sender: 'bot',
       timestamp: new Date()
     }
@@ -51,33 +51,54 @@ const ChatBot = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
     setInputMessage('');
     setIsLoading(true);
 
     try {
+      const userId = localStorage.getItem('userId') || 'anonymous';
+      const userName = localStorage.getItem('userName') || localStorage.getItem('userFirstName') || 'User';
+      const userScore = localStorage.getItem('userCreditScore') || 'not available';
+      
       const data = await api.sendChatMessage(
-        inputMessage,
-        localStorage.getItem('userId'),
+        currentMessage,
+        userId,
         {
-          creditScore: localStorage.getItem('userCreditScore'),
-          name: localStorage.getItem('userName'),
+          creditScore: userScore,
+          name: userName,
           email: localStorage.getItem('userEmail')
         }
       );
       
       const botMessage = {
         id: Date.now() + 1,
-        text: data.response || "I'm sorry, I couldn't process your request right now. Please try again.",
+        text: data.response || "I apologize, but I'm having trouble processing your request. Let me try to help you with general financial guidance. What specific financial topic would you like to discuss?",
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(),
+        source: data.source || 'System'
       };
 
       setMessages(prev => [...prev, botMessage]);
+      
+      // Show typing indicator briefly for more natural feel
+      setTimeout(() => {
+        if (data.source === 'Enhanced AI' && Math.random() > 0.7) {
+          const followUpMessage = {
+            id: Date.now() + 2,
+            text: "Would you like me to explain any of these points in more detail, or do you have other financial questions?",
+            sender: 'bot',
+            timestamp: new Date(),
+            isFollowUp: true
+          };
+          setMessages(prev => [...prev, followUpMessage]);
+        }
+      }, 2000);
+      
     } catch (error) {
       console.error('Chat error:', error);
       const errorMessage = {
         id: Date.now() + 1,
-        text: "I'm experiencing some technical difficulties. Please try again later.",
+        text: "I'm experiencing connectivity issues, but I can still help! Here's what I can assist you with:\n\n• Credit Score: Tips to improve from current level\n• Loans: Best rates and eligibility criteria\n• Investments: SIP planning and portfolio advice\n• Cards: Recommendations based on your profile\n\nWhat would you like to know more about?",
         sender: 'bot',
         timestamp: new Date()
       };
@@ -141,7 +162,7 @@ const ChatBot = () => {
                 </div>
                 <div>
                   <CardTitle className="text-lg font-bold">Know Your Credit</CardTitle>
-                  <p className="text-blue-100 text-sm">AI Assistant</p>
+                  <p className="text-blue-100 text-sm">Your Finance Expert • Always Available</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -177,6 +198,8 @@ const ChatBot = () => {
                       className={`max-w-md p-3 rounded-lg shadow-sm ${
                         message.sender === 'user'
                           ? 'bg-blue-600 text-white'
+                          : message.isFollowUp
+                          ? 'bg-blue-50 text-blue-800 border border-blue-200'
                           : 'bg-white text-gray-800 border border-gray-200'
                       }`}
                     >
@@ -192,10 +215,21 @@ const ChatBot = () => {
                           </div>
                         )}
                         <div className="flex-1">
-                          <p className="text-sm leading-relaxed">{message.text}</p>
-                          <p className={`text-xs mt-2 ${message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
-                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <div className="text-sm leading-relaxed whitespace-pre-line">{message.text}</div>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className={`text-xs ${message.sender === 'user' ? 'text-blue-100' : message.isFollowUp ? 'text-blue-600' : 'text-gray-500'}`}>
+                              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {message.source && message.sender === 'bot' && (
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                message.source === 'Gemini AI' ? 'bg-green-100 text-green-700' :
+                                message.source === 'Enhanced AI' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {message.source}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -221,12 +255,48 @@ const ChatBot = () => {
               </div>
               
               <div className="p-4 border-t border-gray-200 bg-white">
+                {/* Quick action buttons */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInputMessage('What is my credit score and how can I improve it?')}
+                    className="text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    Credit Score
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInputMessage('I need a personal loan. What are my options?')}
+                    className="text-xs border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    Loans
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInputMessage('How should I start investing with SIP?')}
+                    className="text-xs border-purple-200 text-purple-700 hover:bg-purple-50"
+                  >
+                    Investments
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInputMessage('Calculate EMI for ₹5 lakh loan')}
+                    className="text-xs border-orange-200 text-orange-700 hover:bg-orange-50"
+                  >
+                    EMI Calculator
+                  </Button>
+                </div>
+                
                 <div className="flex space-x-3">
                   <Input
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask me anything about finance - credit, loans, investments, tax, insurance..."
+                    placeholder="Ask me anything about finance - I'm here to help with personalized advice!"
                     className="flex-1 border-blue-300 focus:border-blue-500 focus:ring-blue-500"
                     disabled={isLoading}
                   />

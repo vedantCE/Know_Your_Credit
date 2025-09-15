@@ -5,149 +5,125 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // Initialize Gemini AI
 let genAI;
 try {
-  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  console.log('✅ Gemini AI initialized successfully');
+  genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY);
+  console.log(' Gemini AI initialized');
 } catch (error) {
-  console.log('❌ Gemini AI initialization failed:', error.message);
+  console.log(' Gemini AI failed:', error.message);
 }
 
-// Enhanced fallback function with comprehensive finance knowledge
-function getSmartFallback(message, userContext) {
-  const userName = userContext?.name || 'there';
-  const userScore = userContext?.creditScore || 'not available';
+// Intelligent financial knowledge base
+function getFinancialAnswer(message) {
   const lowerMessage = message.toLowerCase();
   
-  // Credit Score related
-  if (lowerMessage.includes('credit score') || lowerMessage.includes('cibil') || lowerMessage.includes('score')) {
-    return `Hi ${userName}! Your current credit score is ${userScore}. Credit scores range from 300-850. A good score is 700+. To improve: pay bills on time (35% impact), keep utilization below 30% (30% impact), maintain credit history length (15% impact), diversify credit types (10% impact), and limit new inquiries (10% impact).`;
+  // CIBIL related
+  if (lowerMessage.includes('cibil')) {
+    return "CIBIL (Credit Information Bureau India Limited) is India's first credit information company. It maintains credit records of individuals and companies. CIBIL score ranges from 300-900, with 750+ considered excellent. It tracks your credit history, payment behavior, and creditworthiness for banks and lenders.";
+  }
+  
+  // Context-aware credit score responses
+  if (lowerMessage.includes('improve') && lowerMessage.includes('credit score')) {
+    if (lowerMessage.includes('neighbor') || lowerMessage.includes('someone else') || lowerMessage.includes('other person')) {
+      return "You cannot directly improve someone else's credit score as credit reports are personal and confidential. However, you can help by: 1) Educating them about credit basics, 2) Suggesting they check their credit report for errors, 3) Advising them to pay bills on time, 4) Recommending they keep credit utilization low, 5) Suggesting they don't close old credit accounts. Each person must manage their own credit responsibly.";
+    }
+    return "To improve YOUR credit score: 1) Pay all bills on time (35% impact), 2) Keep credit utilization below 30% (30% impact), 3) Don't close old credit accounts (15% impact), 4) Mix different types of credit (10% impact), 5) Limit new credit inquiries (10% impact). Monitor your CIBIL report regularly and dispute any errors.";
+  }
+  
+  if (lowerMessage.includes('credit score')) {
+    return "Credit score is a 3-digit number (300-850) that represents your creditworthiness. Factors: Payment history (35%), Credit utilization (30%), Credit history length (15%), Credit mix (10%), New credit (10%). Higher scores get better loan rates and credit card approvals.";
+  }
+  
+  if (lowerMessage.includes('what is credit')) {
+    return "Credit is the ability to borrow money or access goods/services with the promise to pay later. It includes credit cards, loans, mortgages, and lines of credit. Your creditworthiness is measured by your credit score and credit history.";
+  }
+  
+  // Investment related
+  if (lowerMessage.includes('sip')) {
+    return "SIP (Systematic Investment Plan) allows you to invest a fixed amount regularly in mutual funds. Benefits: Rupee cost averaging, disciplined investing, power of compounding. Start with ₹1000-5000 monthly in diversified equity funds for long-term wealth creation.";
+  }
+  
+  if (lowerMessage.includes('mutual fund')) {
+    return "Mutual funds pool money from many investors to buy stocks, bonds, or other securities. Types: Equity (high risk, high return), Debt (low risk, stable return), Hybrid (balanced). Professional fund managers handle investments. Great for beginners and diversification.";
   }
   
   // Loan related
-  else if (lowerMessage.includes('loan') || lowerMessage.includes('apply') || lowerMessage.includes('borrow')) {
-    return `${userName}, for loans: Personal loans (10-24% interest), Home loans (8-12% interest), Car loans (9-15% interest), Business loans (12-20% interest). Your eligibility depends on credit score, income, and debt-to-income ratio. Complete your profile first for personalized recommendations.`;
+  if (lowerMessage.includes('personal loan')) {
+    return "Personal loans are unsecured loans for any purpose. Interest rates: 10-24% based on credit score. Tenure: 1-7 years. No collateral needed. Use for emergencies, debt consolidation, or major expenses. Higher credit scores get lower rates.";
   }
   
-  // Credit Cards
-  else if (lowerMessage.includes('credit card') || lowerMessage.includes('card')) {
-    return 'Credit cards: Choose based on your spending habits. Rewards cards for good credit (700+), secured cards for building credit. Always pay full balance to avoid 24-48% APR. Keep utilization below 30% of limit.';
+  if (lowerMessage.includes('home loan')) {
+    return "Home loans help buy property. Interest rates: 8-12% (current). Tenure: up to 30 years. Loan amount: up to 80-90% of property value. Tax benefits under Section 80C (principal) and 24(b) (interest). EMI depends on loan amount, rate, and tenure.";
   }
   
-  // Investment & Savings
-  else if (lowerMessage.includes('invest') || lowerMessage.includes('mutual fund') || lowerMessage.includes('sip') || lowerMessage.includes('stock')) {
-    return 'Investments: Start with emergency fund (6 months expenses). Then consider: SIP in diversified mutual funds (12-15% returns), PPF (7.1% tax-free), ELSS for tax saving, direct stocks for experienced investors. Diversify across asset classes.';
+  // Insurance related
+  if (lowerMessage.includes('insurance')) {
+    return "Insurance protects against financial losses. Types: Life insurance (term, whole life), Health insurance (medical expenses), Motor insurance (vehicle protection). Term insurance: 10-15x annual income coverage recommended. Health insurance: minimum ₹5 lakh coverage.";
   }
   
-  // Insurance
-  else if (lowerMessage.includes('insurance') || lowerMessage.includes('policy')) {
-    return 'Insurance essentials: Term life insurance (10-15x annual income), health insurance (minimum 5 lakhs), motor insurance (mandatory). Avoid ULIPs and endowment plans - invest and insure separately for better returns.';
+  // Tax related
+  if (lowerMessage.includes('tax') || lowerMessage.includes('80c')) {
+    return "Tax planning reduces tax liability legally. Section 80C: ₹1.5 lakh deduction (EPF, PPF, ELSS, life insurance). Section 80D: Health insurance premiums. HRA: House rent allowance exemption. Plan early in financial year for maximum benefits.";
   }
   
-  // Tax Planning
-  else if (lowerMessage.includes('tax') || lowerMessage.includes('80c') || lowerMessage.includes('deduction')) {
-    return 'Tax saving: Section 80C (1.5L limit) - EPF, PPF, ELSS, NSC, tax-saver FDs. Section 80D for health insurance premiums. HRA exemption if paying rent. Plan investments early in financial year for better corpus building.';
+  // Banking related
+  if (lowerMessage.includes('fixed deposit') || lowerMessage.includes('fd')) {
+    return "Fixed Deposits (FD) are safe investments with guaranteed returns. Current rates: 5-7% annually. Tenure: 7 days to 10 years. Interest taxable as per income slab. Good for capital protection but returns may not beat inflation. Consider for emergency funds.";
   }
   
-  // EMI & Debt
-  else if (lowerMessage.includes('emi') || lowerMessage.includes('debt') || lowerMessage.includes('repay')) {
-    return 'EMI management: Keep total EMIs below 40% of income. Pay high-interest debt first (credit cards, personal loans). Consider balance transfer for lower rates. Use EMI calculators to plan affordability before borrowing.';
+  // EMI related
+  if (lowerMessage.includes('emi')) {
+    return "EMI (Equated Monthly Installment) is fixed monthly payment for loans. Formula: [P x R x (1+R)^N] / [(1+R)^N-1]. Keep total EMIs below 40% of income. Higher down payment reduces EMI. Prepayment reduces total interest burden.";
   }
   
-  // Banking
-  else if (lowerMessage.includes('bank') || lowerMessage.includes('account') || lowerMessage.includes('fd') || lowerMessage.includes('deposit')) {
-    return 'Banking: Maintain minimum balance to avoid charges. FDs give 5-7% returns. High-yield savings accounts offer better rates. Use digital banking for convenience. Keep separate accounts for different goals.';
+  // General finance
+  if (lowerMessage.includes('finance')) {
+    return "Finance is the management of money involving activities like investing, borrowing, lending, budgeting, saving, and forecasting. It includes personal finance (individual money management), corporate finance (business funding), and public finance (government revenue/expenditure).";
   }
   
-  // Financial Planning
-  else if (lowerMessage.includes('financial plan') || lowerMessage.includes('budget') || lowerMessage.includes('money management')) {
-    return 'Financial planning: Follow 50-30-20 rule (50% needs, 30% wants, 20% savings). Set SMART financial goals. Build emergency fund first. Automate investments. Review and rebalance portfolio annually.';
+  // Handle non-financial or unclear questions
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+    return "Hello! I'm your KYC AI Assistant, specialized in financial guidance. I can help you with credit scores, loans, investments, insurance, tax planning, and all financial matters. What financial question can I help you with today?";
   }
   
-  // Credit History & Reports
-  else if (lowerMessage.includes('credit history') || lowerMessage.includes('credit report') || lowerMessage.includes('cibil report')) {
-    return 'Credit history includes: Payment history (35%), credit utilization (30%), credit age (15%), credit mix (10%), new credit (10%). Check free annual reports from CIBIL, Experian, Equifax. Dispute errors immediately.';
-  }
-  
-  // Interest Rates
-  else if (lowerMessage.includes('interest') || lowerMessage.includes('rate') || lowerMessage.includes('apr')) {
-    return 'Interest rates vary: Savings (3-4%), FDs (5-7%), Personal loans (10-24%), Home loans (8-12%), Credit cards (24-48% APR). Compare rates across lenders. Fixed vs floating rates depend on market outlook.';
-  }
-  
-  // Default comprehensive response
-  else {
-    return `Hello ${userName}! I'm your comprehensive finance AI assistant. I can help with: Credit scores & reports, Loans (personal, home, car, business), Credit cards, Investments (mutual funds, stocks, SIP), Insurance, Tax planning, EMI calculations, Banking products, Financial planning, and Debt management. What specific topic interests you?`;
-  }
+  // Default response for unclear queries
+  return "I'm your financial AI assistant. I can help with specific financial topics like credit scores, loans, investments, insurance, tax planning, and banking. Could you please ask a more specific financial question so I can provide you with detailed and accurate information?";
 }
 
-// Chat endpoint with AI integration
+// Chat endpoint
 router.post('/', async (req, res) => {
-  console.log('Chat request received:', req.body);
+  const { message } = req.body;
   
-  const { message, userContext } = req.body;
-  const userName = userContext?.name || 'User';
-  const userScore = userContext?.creditScore || 'not available';
+  console.log('Question received:', message);
   
   // Try Gemini AI first
-  if (genAI && process.env.GEMINI_API_KEY) {
+  if (genAI) {
     try {
-      const context = `You are an expert financial advisor and AI assistant for a comprehensive credit and finance platform called "Know Your Credit". 
-
-User Context: 
-- Name: ${userName}
-- Credit Score: ${userScore}
-- Platform: Credit score management and loan application system
-
-Your expertise covers ALL financial topics including:
-- Credit scores, credit reports, credit history, CIBIL scores
-- All types of loans (personal, home, car, business, education)
-- Credit cards, debit cards, banking products
-- Investments (mutual funds, SIP, stocks, bonds, PPF, ELSS)
-- Insurance (term, health, motor, life insurance)
-- Tax planning and savings (80C, 80D, HRA, tax deductions)
-- EMI calculations, debt management, financial planning
-- Banking services, fixed deposits, savings accounts
-- Financial literacy, budgeting, money management
-- Indian financial regulations, RBI guidelines
-- Interest rates, inflation, economic factors
-
-Guidelines:
-- Provide accurate, detailed, and actionable financial advice
-- Use specific numbers, percentages, and examples when relevant
-- Consider Indian financial context (INR, Indian banks, regulations)
-- Be helpful for both beginners and experienced users
-- If user's credit score is available, provide personalized recommendations
-- Keep responses informative but conversational
-- Always prioritize user's financial well-being
-
-User question: ${message}`
-      
+      console.log('Trying Gemini AI...');
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(context);
+      const result = await model.generateContent(`You are a financial expert AI assistant. Answer this question accurately and contextually: "${message}". If it's about helping someone else with their finances, explain what's possible and what isn't. Be helpful and specific.`);
       const response = await result.response;
       const text = response.text();
       
-      console.log('✅ Gemini AI response received');
-      
+      console.log('Gemini AI success');
       return res.json({
         success: true,
         response: text,
-        source: 'AI',
+        source: 'KYC AI',
         timestamp: new Date().toISOString()
       });
       
     } catch (error) {
-      console.log('❌ Gemini AI error:', error.message);
-      // Fall through to smart fallback
+      console.log('Gemini error:', error.message);
     }
   }
   
-  // Use smart fallback
-  const fallbackResponse = getSmartFallback(message, userContext);
-  console.log('📝 Using smart fallback response');
+  // Use comprehensive knowledge base
+  const answer = getFinancialAnswer(message);
+  console.log('Using knowledge base');
   
   res.json({
     success: true,
-    response: fallbackResponse,
-    source: 'Fallback',
+    response: answer,
+    source: 'KYC Assistant',
     timestamp: new Date().toISOString()
   });
 });

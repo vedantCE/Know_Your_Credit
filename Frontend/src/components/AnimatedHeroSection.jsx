@@ -10,7 +10,7 @@ const AnimatedHeroSection = ({ title, subtitle, showStats = true }) => {
   ];
 
   return (
-    <div className="relative bg-gradient-to-br from-blue-50 via-white to-blue-100 py-16 overflow-hidden">
+    <div className="relative bg-gradient-to-br from-blue-50/80 via-white/60 to-blue-100/80 py-16 overflow-hidden">
       {/* Background animated elements */}
       <motion.div
         className="absolute top-20 left-10 w-40 h-40 bg-blue-200 rounded-full opacity-10"
@@ -137,7 +137,7 @@ const AnimatedHeroSection = ({ title, subtitle, showStats = true }) => {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1, delay: 0.8 }}
           >
-            <div className="bg-white rounded-full w-32 h-32 flex items-center justify-center shadow-lg border-4 border-blue-200">
+            <div className="backdrop-blur-md bg-white/70 rounded-full w-32 h-32 flex items-center justify-center border-2 border-blue-100">
               <div className="text-center">
                 <motion.div
                   className="text-3xl font-bold text-blue-600"
@@ -147,7 +147,7 @@ const AnimatedHeroSection = ({ title, subtitle, showStats = true }) => {
                 >
                   750+
                 </motion.div>
-                <div className="text-xs text-gray-500">Credit Score</div>
+                <div className="text-xs text-gray-600">Credit Score</div>
               </div>
             </div>
           </motion.div>
@@ -164,11 +164,15 @@ const AnimatedHeroSection = ({ title, subtitle, showStats = true }) => {
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
-                className="bg-white rounded-xl p-6 shadow-lg"
+                className="backdrop-blur-md bg-white/60 rounded-xl p-6 border border-white/20"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1.6 + index * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                whileHover={{ 
+                  scale: 1.05,
+                  background: "rgba(255, 255, 255, 0.8)",
+                  transition: { duration: 0.2 } 
+                }}
               >
                 <stat.icon className={`w-8 h-8 ${stat.color} mx-auto mb-2`} />
                 <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
