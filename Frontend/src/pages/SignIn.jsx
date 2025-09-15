@@ -132,17 +132,13 @@ const SignIn = () => {
   };
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-white-50 via-blue-50 to-blue-50 flex items-center justify-center p-6"
-      style={{ backdropFilter: "#ffffff" }}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link
             to="/"
             className="inline-flex items-center space-x-2 text-blue-700 hover:text-blue-500 transition-colors"
           >
-            {/* <Shield className="bg-white-500 text-blue-700 border-blue-200 mt-1"/> */}
             <div className="flex items-center justify-center space-x-4">
               <div className="relative">
                 <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 p-2 rounded-lg">
@@ -245,14 +241,12 @@ const SignIn = () => {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-500 hover:bg-blue-700 focus-visible:ring-blue-800 text-white-600 "
+                className="w-full bg-blue-500 hover:bg-blue-700 focus-visible:ring-blue-800 text-white-600"
                 disabled={isLoading}
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
-
 
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
@@ -262,7 +256,6 @@ const SignIn = () => {
                 </Link>
               </p>
             </div>
-
           </CardContent>
         </Card>
       </div>

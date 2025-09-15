@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +21,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import AnimatedHeroSection from "@/components/AnimatedHeroSection";
 
 
 const Index = () => {
@@ -107,7 +109,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 shadow-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -160,63 +162,108 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 text-center">
+      <section className="py-20 bg-gradient-to-br from-blue-50 via-white to-blue-100">
         <div className="container mx-auto px-6">
-          <Badge className="mb-4 bg-blue-100 text-blue-700 border-blue-200">
-            Multi-Bureau Credit Scoring Platform
-          </Badge>
-          <h1 className="text-5xl font-bold mb-6 text-gray-900">
-            Unified Credit Intelligence for
-            <span className="text-blue-600"> Smart Lending</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Integrate and aggregate credit data from multiple bureaus. Our
-            solution normalizes diverse credit scores into a unified profile,
-            handles bureau downtime gracefully, and optimizes real-time lending
-            decisions.
-          </p>
-          <div className="flex justify-center space-x-4">
-            <Link to="/credit-lookup">
-              <Button size="lg" className="text-white px-8 bg-blue-600 hover:bg-blue-700">
-                Check Credit Score
-              </Button>
-            </Link>
-            <a href="/watch_demo.mp4" target="_blank">
-              <Button size="lg" className="text-lg px-8 bg-transparent border-2 border-blue-600 text-blue-600 transition-colors duration-300 hover:bg-blue-600 hover:text-black">
-                Watch Demo
-              </Button>
-            </a>
+          <div className="flex items-center justify-between gap-12">
+            {/* Left side - Content */}
+            <div className="flex-1 text-left">
+              <Badge className="mb-4 bg-blue-100 text-blue-700 border-blue-200">
+                Multi-Bureau Credit Scoring Platform
+              </Badge>
+              <motion.h1 
+                className="text-5xl font-bold mb-6 text-gray-900"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                Unified Credit Intelligence for
+                <span className="text-blue-600"> Smart Lending</span>
+              </motion.h1>
+              <motion.p 
+                className="text-xl text-gray-600 mb-8 max-w-2xl"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.8 }}
+              >
+                Integrate and aggregate credit data from multiple bureaus. Our solution normalizes diverse credit scores into a unified profile, handles bureau downtime gracefully, and optimizes real-time lending decisions.
+              </motion.p>
+              
+              {/* CTA Buttons */}
+              <motion.div 
+                className="flex space-x-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+              >
+                <Link to="/credit-lookup">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button size="lg" className="text-white px-8 bg-blue-600 hover:bg-blue-700">
+                      Check Credit Score
+                    </Button>
+                  </motion.div>
+                </Link>
+                <a href="/watch_demo.mp4" target="_blank">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button size="lg" className="text-lg px-8 bg-transparent border-2 border-blue-600 text-blue-600 transition-colors duration-300 hover:bg-blue-600 hover:text-black">
+                      Watch Demo
+                    </Button>
+                  </motion.div>
+                </a>
+              </motion.div>
+            </div>
+            
+            {/* Right side - Animation */}
+            <motion.div 
+              className="flex-1 hidden lg:block"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+            >
+              <AnimatedHeroSection showStats={false} />
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Metrics Section */}
-      <section className="py-12 bg-white/80 backdrop-blur-sm">
+      <motion.section 
+        className="py-12 bg-white/80 backdrop-blur-sm"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        viewport={{ once: true }}
+      >
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div className="flex flex-col items-center">
-              <Users className="h-10 w-10 text-blue-600 mb-2" />
-              <div className="text-3xl font-bold text-gray-900">90%</div>
-              <div className="text-sm text-gray-600">Customer Satisfaction</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <TrendingUp className="h-10 w-10 text-blue-600 mb-2" />
-              <div className="text-3xl font-bold text-gray-900">200K+</div>
-              <div className="text-sm text-gray-600">Active Users</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <FileText className="h-10 w-10 text-blue-600 mb-2" />
-              <div className="text-3xl font-bold text-gray-900">15M+</div>
-              <div className="text-sm text-gray-600">Credit Reports Generated</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <Globe className="h-10 w-10 text-blue-600 mb-2" />
-              <div className="text-3xl font-bold text-gray-900">50+</div>
-              <div className="text-sm text-gray-600">Banking Partners</div>
-            </div>
+            {[
+              { icon: Users, value: "90%", label: "Customer Satisfaction", color: "text-blue-600" },
+              { icon: TrendingUp, value: "200K+", label: "Active Users", color: "text-green-600" },
+              { icon: FileText, value: "15M+", label: "Credit Reports Generated", color: "text-purple-600" },
+              { icon: Globe, value: "50+", label: "Banking Partners", color: "text-yellow-600" }
+            ].map((metric, index) => (
+              <motion.div
+                key={index}
+                className="flex flex-col items-center"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+                viewport={{ once: true }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <metric.icon className={`h-10 w-10 ${metric.color} mb-2`} />
+                <div className="text-3xl font-bold text-gray-900">{metric.value}</div>
+                <div className="text-sm text-gray-600">{metric.label}</div>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Features Section */}
       <section id="features" className="py-20 bg-white/80 backdrop-blur-sm">
@@ -227,17 +274,30 @@ const Index = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300">
-                <CardHeader className="text-center">
-                  <div className="mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit">
-                    {feature.icon}
-                  </div>
-                  <CardTitle className="text-lg text-gray-800">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-center text-gray-600">{feature.description}</CardDescription>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.6 }}
+                viewport={{ once: true }}
+                whileHover={{ scale: 1.05, y: -5 }}
+              >
+                <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 h-full">
+                  <CardHeader className="text-center">
+                    <motion.div 
+                      className="mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {feature.icon}
+                    </motion.div>
+                    <CardTitle className="text-lg text-gray-800">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-center text-gray-600">{feature.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
