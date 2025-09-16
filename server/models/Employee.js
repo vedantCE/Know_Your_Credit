@@ -147,7 +147,7 @@ const EmployeeSchema=new mongoose.Schema({
 })
 
 // Pre-save middleware to generate credit score before saving
-EmployeeSchema.pre('save', function(next) {
+EmployeeSchema.pre('save', async function(next) {
     if (this.isNew && (!this.creditScore || this.creditScore === 0)) {
         // Generate credit score based on user profile
         let score = 300; // Base score
@@ -190,6 +190,16 @@ EmployeeSchema.pre('save', function(next) {
         this.creditScore = Math.min(850, Math.max(600, score));
         this.cachedCreditScore = this.creditScore;
         this.lastScoreUpdate = new Date();
+        
+        // Retry caching if it fails
+        try {
+            await this.constructor.findByIdAndUpdate(this._id, {
+                cachedCreditScore: this.creditScore,
+                lastScoreUpdate: new Date()
+            });
+        } catch (error) {
+            console.log('Initial cache save will be handled by retry mechanism');
+        }
     }
     next();
 });

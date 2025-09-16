@@ -12,6 +12,11 @@ const employeeRoutes=require('./routes/employees');
 const otpRoutes=require('./routes/otp');
 const chatRoutes=require('./routes/chat');
 const emailService=require('./services/emailService');
+const cacheRepairService=require('./services/cacheRepairService');
+const cacheManagementRoutes=require('./routes/cacheManagement');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { generalLimiter, authLimiter } = require('./middleware/rateLimiter');
+const { validateRegistration, validateLogin } = require('./middleware/validation');
 
 const MONGO_URI="mongodb+srv://vedantbhattce28:3yhEkDTd5S8fKFAs@cluster1.dbi1j2u.mongodb.net/kycDB?retryWrites=true&w=majority"
 
@@ -22,18 +27,24 @@ app.use(cors({
    methods: ['GET', 'POST', 'PUT', 'DELETE'],
    credentials: true
 }));
+
+// Apply rate limiting
+app.use(generalLimiter);
+app.use('/login', authLimiter);
+app.use('/register', authLimiter);
 app.use('/api/bureau', bureauRoutes);
 app.use('/api/mock-bureau', require('./routes/mockBureau'));
 app.use('/api/employees', employeeRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/cache', cacheManagementRoutes);
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Atlas Connected Successfully'))
   .catch(err => console.error('Connection Error:', err.message));
 
   
-app.post('/register',(req,res)=>{
+app.post('/register', validateRegistration, async (req,res)=>{
    // Clean and validate data
    const userData = {
       ...req.body,
@@ -41,8 +52,9 @@ app.post('/register',(req,res)=>{
       creditCardNumber: req.body.creditCardNumber?.replace(/\s/g, '')
    };
    
-   EmployeeModel.create(userData)
-   .then(user=>res.json({
+   try {
+     const user = await EmployeeModel.create(userData);
+     res.json({
       status: "Success",
       message: "User registered successfully",
       user: {
@@ -65,22 +77,23 @@ app.post('/register',(req,res)=>{
          status: user.status,
          signupTimestamp: user.signupTimestamp
       }
-   }))
-   .catch(err=>{
+   });
+   } catch (err) {
+      console.error('Registration error:', err);
       if(err.code === 11000) {
-         res.json({status: "Error", message: "Email already exists"})
+         return res.status(400).json({status: "Error", message: "Email already exists"});
       } else if(err.name === 'ValidationError') {
-         res.json({status: "Error", message: err.message})
+         return res.status(400).json({status: "Error", message: err.message});
       } else {
-         res.json({status: "Error", message: "Registration failed"})
+         return res.status(500).json({status: "Error", message: "Registration failed"});
       }
-   })
+   }
 })
 
-app.post('/login',(req,res)=>{
+app.post('/login', validateLogin, async (req,res)=>{
    const {email, password} = req.body;
-   EmployeeModel.findOne({email: email})
-   .then(user => {
+   try {
+     const user = await EmployeeModel.findOne({email: email});
       if(user) {
          // Check if user is suspended
          if(user.status === 'Suspended' && user.suspendedUntil) {
@@ -132,8 +145,10 @@ app.post('/login',(req,res)=>{
       } else {
          res.json({status: "Error", message: "No record existed"})
       }
-   })
-   .catch(err => res.json({status: "Error", message: "Server error"}))
+   } catch (err) {
+      console.error('Login error:', err);
+      res.status(500).json({status: "Error", message: "Server error"});
+   }
 })
 
 // Forgot Password
@@ -718,6 +733,21 @@ app.post('/send-otp', async (req, res) => {
 // Test endpoint for chat
 app.get('/api/chat/test', (req, res) => {
   res.json({ message: 'Chat API is working!' });
+});
+
+// Error handling middleware (must be last)
+app.use(notFound);
+app.use(errorHandler);
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
 });
 
 app.listen(3001,()=>{

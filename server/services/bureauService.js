@@ -44,13 +44,10 @@ class BureauService {
       // Cache successful score in database if user ID exists
       if (userData._id && response.creditScore) {
         try {
-          const EmployeeModel = require('../models/Employee');
-          await EmployeeModel.findByIdAndUpdate(userData._id, {
-            cachedCreditScore: response.creditScore,
-            lastScoreUpdate: new Date()
-          });
+          await this.cacheScoreWithRetry(userData._id, response.creditScore);
         } catch (cacheError) {
-          console.log('Failed to cache score:', cacheError.message);
+          console.error('Cache operation failed:', cacheError.message);
+          // Continue without failing the main operation
         }
       }
       
@@ -71,49 +68,93 @@ class BureauService {
   async callBureauAPI(bureauName, userData) {
     const bureau = this.bureaus[bureauName];
     
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
+      // Simulate network timeout
+      const timeout = setTimeout(() => {
+        reject(new Error(`Bureau ${bureauName} API timeout`));
+      }, 10000); // 10 second timeout
+      
       setTimeout(() => {
-        const baseScore = this.calculateBaseScore(userData);
-        const [min, max] = bureau.scoreRange;
-        const bureauScore = Math.min(max, Math.max(min, 
-          baseScore + this.getBureauVariation(bureauName)
-        ));
+        clearTimeout(timeout);
         
-        resolve({
-          creditScore: bureauScore,
-          bureau: bureauName,
-          factors: this.getBureauFactors(bureauName, userData),
-          reportId: `${bureauName}_${Date.now()}`,
-          timestamp: new Date()
-        });
+        try {
+          // Simulate occasional API failures
+          if (Math.random() < 0.1) { // 10% failure rate
+            throw new Error(`Bureau ${bureauName} API temporarily unavailable`);
+          }
+          
+          const baseScore = this.calculateBaseScore(userData);
+          const [min, max] = bureau.scoreRange;
+          const bureauScore = Math.min(max, Math.max(min, 
+            baseScore + this.getBureauVariation(bureauName)
+          ));
+          
+          resolve({
+            creditScore: bureauScore,
+            bureau: bureauName,
+            factors: this.getBureauFactors(bureauName, userData),
+            reportId: `${bureauName}_${Date.now()}`,
+            timestamp: new Date()
+          });
+        } catch (error) {
+          reject(error);
+        }
       }, Math.random() * 2000 + 500); // 0.5-2.5s delay
     });
   }
 
   calculateBaseScore(userData) {
-    let score = 300;
-    
-    const income = parseInt(userData.annualIncome?.replace(/[^0-9]/g, '') || '0');
-    if (income > 1000000) score += 200;
-    else if (income > 500000) score += 150;
-    else if (income > 300000) score += 100;
-    else score += 50;
-    
-    if (userData.dateOfBirth) {
-      const age = new Date().getFullYear() - new Date(userData.dateOfBirth).getFullYear();
-      if (age >= 25 && age <= 45) score += 100;
-      else if (age >= 18 && age <= 60) score += 70;
-      else score += 30;
-    } else score += 50;
-    
-    if (userData.occupation) {
-      const job = userData.occupation.toLowerCase();
-      if (job.includes('engineer') || job.includes('manager')) score += 150;
-      else if (job.includes('business') || job.includes('professional')) score += 120;
-      else score += 80;
-    } else score += 50;
-    
-    return Math.min(900, Math.max(300, score));
+    try {
+      let score = 300;
+      
+      // Validate input data
+      if (!userData || typeof userData !== 'object') {
+        console.warn('Invalid user data provided for score calculation');
+        return 650; // Default score
+      }
+      
+      const income = parseInt(userData.annualIncome?.replace(/[^0-9]/g, '') || '0');
+      if (income > 1000000) score += 200;
+      else if (income > 500000) score += 150;
+      else if (income > 300000) score += 100;
+      else score += 50;
+      
+      if (userData.dateOfBirth) {
+        try {
+          const age = new Date().getFullYear() - new Date(userData.dateOfBirth).getFullYear();
+          if (age >= 25 && age <= 45) score += 100;
+          else if (age >= 18 && age <= 60) score += 70;
+          else score += 30;
+        } catch (dateError) {
+          console.warn('Invalid date of birth:', userData.dateOfBirth);
+          score += 50; // Default age score
+        }
+      } else score += 50;
+      
+      if (userData.occupation) {
+        try {
+          const job = userData.occupation.toLowerCase();
+          if (job.includes('engineer') || job.includes('manager')) score += 150;
+          else if (job.includes('business') || job.includes('professional')) score += 120;
+          else score += 80;
+        } catch (occupationError) {
+          console.warn('Invalid occupation data:', userData.occupation);
+          score += 50;
+        }
+      } else score += 50;
+      
+      const finalScore = Math.min(900, Math.max(300, score));
+      
+      if (isNaN(finalScore)) {
+        console.error('Score calculation resulted in NaN, using default');
+        return 650;
+      }
+      
+      return finalScore;
+    } catch (error) {
+      console.error('Error in calculateBaseScore:', error.message);
+      return 650; // Fallback score
+    }
   }
 
   calculateRiskLevel(score) {
@@ -206,18 +247,56 @@ class BureauService {
     // Cache consolidated score in database if user ID exists
     if (userData._id && consolidatedScore) {
       try {
-        const EmployeeModel = require('../models/Employee');
-        await EmployeeModel.findByIdAndUpdate(userData._id, {
-          cachedCreditScore: consolidatedScore,
-          lastScoreUpdate: new Date(),
-          bureauData: consolidatedResult
-        });
+        await this.cacheScoreWithRetry(userData._id, consolidatedScore, consolidatedResult);
       } catch (cacheError) {
-        console.log('Failed to cache consolidated score:', cacheError.message);
+        console.error('Consolidated cache operation failed:', cacheError.message);
+        // Continue without failing the main operation
       }
     }
     
     return consolidatedResult;
+  }
+
+  async cacheScoreWithRetry(userId, score, bureauData = null, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const EmployeeModel = require('../models/Employee');
+        const updateData = {
+          cachedCreditScore: score,
+          lastScoreUpdate: new Date(),
+          riskLevel: score >= 750 ? 'Low' : score >= 650 ? 'Medium' : 'High'
+        };
+        
+        if (bureauData) {
+          updateData.bureauData = bureauData;
+        }
+        
+        await EmployeeModel.findByIdAndUpdate(userId, updateData);
+        return true;
+      } catch (error) {
+        if (i === retries - 1) {
+          console.log(`Cache failed after ${retries} retries:`, error.message);
+          return false;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+    return false;
+  }
+
+  async validateDatabaseConnection() {
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.connection.readyState !== 1) {
+        throw new Error('Database not connected');
+      }
+      // Test with a simple query
+      await mongoose.connection.db.admin().ping();
+      return true;
+    } catch (error) {
+      console.error('Database connection validation failed:', error.message);
+      return false;
+    }
   }
 
   getFallbackScore(userData, bureauName = 'INTERNAL', reason = 'Bureau unavailable') {

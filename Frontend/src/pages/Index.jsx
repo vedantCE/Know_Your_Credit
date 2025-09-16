@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +23,11 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnimatedHeroSection from "@/components/AnimatedHeroSection";
+import VideoModal from "@/components/VideoModal";
 
 
 const Index = () => {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const features = [
     {
       icon: <BarChart3 className="h-8 w-8 text-blue-600" />,
@@ -205,16 +208,18 @@ const Index = () => {
                     </Button>
                   </motion.div>
                 </Link>
-                <a href="/watch_demo.mp4" target="_blank">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    size="lg" 
+                    className="text-lg px-8 bg-transparent border-2 border-blue-600 text-blue-600 transition-colors duration-300 hover:bg-blue-600 hover:text-black"
+                    onClick={() => setIsVideoModalOpen(true)}
                   >
-                    <Button size="lg" className="text-lg px-8 bg-transparent border-2 border-blue-600 text-blue-600 transition-colors duration-300 hover:bg-blue-600 hover:text-black">
-                      Watch Demo
-                    </Button>
-                  </motion.div>
-                </a>
+                    Watch Demo
+                  </Button>
+                </motion.div>
               </motion.div>
             </div>
             
@@ -443,6 +448,13 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      
+      {/* Video Modal */}
+      <VideoModal 
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        videoSrc="/KYC Demo.mov"
+      />
     </div>
   );
 };
