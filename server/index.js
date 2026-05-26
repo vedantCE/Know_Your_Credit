@@ -18,7 +18,7 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { generalLimiter, authLimiter } = require('./middleware/rateLimiter');
 const { validateRegistration, validateLogin } = require('./middleware/validation');
 
-const MONGO_URI="mongodb+srv://vedantbhattce28:3yhEkDTd5S8fKFAs@cluster1.dbi1j2u.mongodb.net/kycDB?retryWrites=true&w=majority"
+const MONGO_URI=process.env.MONGO_URI
 
 const app=express();
 app.use(express.json());
